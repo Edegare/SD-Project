@@ -8,7 +8,7 @@ public class MainClient {
     public static void main(String[] args) {
         try {
 
-            Socket socket = new Socket("localhost", 12346);
+            Socket socket = new Socket("localhost", 12345);
 
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             PrintWriter out = new PrintWriter(socket.getOutputStream());
@@ -52,10 +52,11 @@ public class MainClient {
             out.println(password);
             out.flush();
 
-// ----------------------------------------
             response = in.readLine();
-            System.out.println("Server: " + response);
-            if (response.equals("Logged! You can start writing!")) {
+// -----------------------------------------------------------
+
+            if (response.equals("sucess")) { // if valid credentials
+                System.out.println("Logged Sucessfully! You can start writing!");
                 String userInput;
                 while ((userInput = systemIn.readLine()) != null) { //do something
                     out.println(userInput);
@@ -66,6 +67,9 @@ public class MainClient {
                     response = in.readLine();
                     System.out.println("Server: " + response);
                 }
+            }
+            else {
+                System.out.println("Invalid Credentials!");
             }
                         
             socket.shutdownOutput();
