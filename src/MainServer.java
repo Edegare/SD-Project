@@ -12,11 +12,12 @@ import javax.management.RuntimeErrorException;
 class ClientHandler implements Runnable {
     private final Socket socket;
     private UserManager users;
+    private DataManager data;
 
-
-    public ClientHandler(Socket socket, UserManager users) {
+    public ClientHandler(Socket socket, UserManager users, DataManager data) {
         this.socket = socket;
         this.users = users;
+        this.data = data;
     }
 
     @Override
@@ -57,7 +58,7 @@ class ClientHandler implements Runnable {
 
             try {
                 if (this.users.authenticate(username, pass)) {
-                    out.println("Logged! You can start writing!");
+                    out.println("sucess");
                     out.flush();
 
                     System.out.println(username + " authenticated!");
@@ -73,7 +74,7 @@ class ClientHandler implements Runnable {
 
                     this.users.logOut();  // Logout user 
                 } else {
-                    out.println("Invalid Credentials! Going down!");
+                    out.println("invalid");
                     out.flush();
                 }
             } catch (InterruptedException e) {
@@ -98,8 +99,9 @@ public class MainServer {
     public static void main(String[] args) throws InterruptedException{
         try {
             UserManager users = new UserManager(2);
-            ServerSocket serverSocket = new ServerSocket(12346);
-            System.out.println("Server waiting for clients on port 12346...");
+            DataManager data = new DataManager();
+            ServerSocket serverSocket = new ServerSocket(12345);
+            System.out.println("Server waiting for clients on port 12345...");
 
 
             while (true) {
@@ -109,7 +111,7 @@ public class MainServer {
                 System.out.println("Client connected: " + socket.getInetAddress().getHostAddress());
 
                 // Create a new thread to handle the client
-                Thread clientThread = new Thread(new ClientHandler(socket, users));
+                Thread clientThread = new Thread(new ClientHandler(socket, users, data));
                 clientThread.start();
             }
         } catch (IOException e) {
