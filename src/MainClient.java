@@ -1,84 +1,100 @@
-
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.io.IOException;
 import java.net.Socket;
+
 
 public class MainClient {
     public static void main(String[] args) {
-        try {
+        try (Socket socket = new Socket("localhost", 12345);
+             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+             PrintWriter out = new PrintWriter(socket.getOutputStream());
+             BufferedReader systemIn = new BufferedReader(new InputStreamReader(System.in))) {
 
-            Socket socket = new Socket("localhost", 12345);
+            // ----------- Register and Login ------------------
+            System.out.println(in.readLine());  // Welcome 
 
-            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            PrintWriter out = new PrintWriter(socket.getOutputStream());
 
-            BufferedReader systemIn = new BufferedReader(new InputStreamReader(System.in));
+            int option = 0;
+            String regOrLogOption;
+            String regOrLogMenu;
             
+            // Prompt for register or login option
+            while (true) {
 
+                System.out.println("Write 'r' to register new account or 'l' to log in to your account.");  // Register/Login prompt
+                
+                regOrLogOption = systemIn.readLine();
+                if (regOrLogOption == null) {
+                    break;
+                }
 
-            String response = in.readLine(); // Welcome message
-            if (response == null) {
-                socket.shutdownOutput();
-                socket.shutdownInput();
-                socket.close();
-                return;
-            }
-            System.out.println(response);
-            
-            
-// ------------------ Register and Log in ----------------------
-            
-            System.out.println("Username: ");
-            String username = systemIn.readLine();
-            if (username == null) {
-                socket.shutdownOutput();
-                socket.shutdownInput();
-                socket.close();
-                return;
-            }
-            out.println(username);
-            out.flush();
+                out.println(regOrLogOption);
+                out.flush();
 
+                regOrLogMenu = in.readLine();
+                if (regOrLogMenu.equals("register")) {
+                    System.out.println("= Create New Account =");
+                    option = 1;
+                } else if (regOrLogMenu.equals("login")) {
+                    System.out.println("= Login =");
+                    option = 2;
+                } else {
+                    System.out.println("Invalid option!");
+                    continue;
+                }
 
-            System.out.println("Password: ");
-            String password = systemIn.readLine();
-            if (password == null) {
-                socket.shutdownOutput();
-                socket.shutdownInput();
-                socket.close();
-                return;
-            }
-            out.println(password);
-            out.flush();
+                // Prompt for username
+                System.out.println("Username: ");
+                String username = systemIn.readLine();
+                out.println(username);
+                out.flush();
 
-            response = in.readLine();
-// -----------------------------------------------------------
+                // Prompt for password
+                System.out.println("Password: ");
+                String password = systemIn.readLine();
+                out.println(password);
+                out.flush();
 
-            if (response.equals("sucess")) { // if valid credentials
-                System.out.println("Logged Sucessfully! You can start writing!");
-                String userInput;
-                while ((userInput = systemIn.readLine()) != null) { //do something
-                    out.println(userInput);
-                    out.flush();
+                if (option == 1) {
+                    System.out.println(in.readLine());
+                }
 
-                    if (userInput.equals("end")) break;
+                if (option == 2) {
+                    // Authentication
+                    System.out.println("Waiting for server response...");
+                    String response = in.readLine();
+                    if (response.equals("success")) {
 
-                    response = in.readLine();
-                    System.out.println("Server: " + response);
+                        System.out.println("Logged in successfully! You can start writing messages.");
+                        String userInput;
+
+                        // Do something
+                        while ((userInput = systemIn.readLine()) != null) {
+                            out.println(userInput);
+                            out.flush();
+
+                            if (userInput.equals("end")) break;
+
+                            response = in.readLine();
+                            System.out.println("Server: " + response);
+                        }
+                        break;
+                    } else {
+                        System.out.println("Invalid credentials!");
+                    }
                 }
             }
-            else {
-                System.out.println("Invalid Credentials!");
-            }
-                        
-            socket.shutdownOutput();
 
+            // close connection
+            socket.shutdownOutput();
             socket.shutdownInput();
             socket.close();
 
-        } catch (Exception e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
 }
+
