@@ -1,4 +1,6 @@
 import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.IOException;
@@ -10,7 +12,9 @@ public class MainClient {
         try (Socket socket = new Socket("localhost", 12345);
              BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
              PrintWriter out = new PrintWriter(socket.getOutputStream());
-             BufferedReader systemIn = new BufferedReader(new InputStreamReader(System.in))) {
+             BufferedReader systemIn = new BufferedReader(new InputStreamReader(System.in));
+             DataOutputStream dataOut = new DataOutputStream(socket.getOutputStream());
+             DataInputStream dataIn = new DataInputStream(socket.getInputStream())) {
 
             // ----------- Register and Login ------------------
             System.out.println(in.readLine());  // Welcome 
@@ -29,6 +33,7 @@ public class MainClient {
                 if (regOrLogOption == null) {
                     break;
                 }
+                System.out.println();
 
                 out.println(regOrLogOption);
                 out.flush();
@@ -57,28 +62,84 @@ public class MainClient {
                 out.println(password);
                 out.flush();
 
+                // ------------ Create new account ----------------
                 if (option == 1) {
                     System.out.println(in.readLine());
                 }
-
+                // ------------- Log in --------------
                 if (option == 2) {
                     // Authentication
-                    System.out.println("Waiting for server response...");
+                    System.out.println("Waiting for server to authenticate user...");
                     String response = in.readLine();
-                    if (response.equals("success")) {
+                    if (response == null) break;
 
-                        System.out.println("Logged in successfully! You can start writing messages.");
+                    else if (response.equals("success")) { // If authenticated start data management
+                        
+                        String object = in.readLine(); // Type of the objects of the shared map
+                        if (object == null) break;
+
+                        
+
+                        System.out.println("Logged in successfully!");
+                        System.out.println();
+                        
+
                         String userInput;
 
                         // Do something
-                        while ((userInput = systemIn.readLine()) != null) {
-                            out.println(userInput);
+                        while (true) {
+                            
+                            System.out.println("Enter a command ('help' to list commands):");
+
+                            userInput = systemIn.readLine(); // Read command
+                            if (userInput == null) break;
+                            System.out.println();
+
+                            if (userInput.equals("help")) { // Help commands - list all commands
+                                System.out.println("List of commands:");
+                                System.out.println("help - List all commands.");
+                                System.out.println("put(String key, byte[] value) - Adds or updates a single key-value pair in the server.");
+                                System.out.println("get(String key) - Retrieves the value associated with the given key, or returns null if the key does not exist.");
+                                System.out.println("multiPut(Map<String, byte[]> mapValues) - Adds or updates multiple key-value pairs in the server.");
+                                System.out.println("multiGet(Set<String> keys) - Retrieves values for the specified keys and returns them as a map.");
+                                System.out.println("end - End program");
+                                System.out.println();
+                                continue;
+                            }
+                            
+
+
+                            else if (userInput.equals("end")) { 
+                                out.println(userInput);
+                                out.flush();
+                                break;
+                            }
+
+                            String[] tokens = userInput.split(" ");
+                            
+                            if (tokens.length == 0 || tokens[0].isEmpty()) {
+                                System.out.println("Invalid command!");
+                                System.out.println();
+                                continue;
+                            }
+
+                            String command = tokens[0];
+                            
+                            // Send command
+                            out.println(command);
                             out.flush();
 
-                            if (userInput.equals("end")) break;
+                            String commandOutput = in.readLine();
+                            if (commandOutput == null) {
+                                break;
+                            }
+                            else if (commandOutput.equals("invalid")) {
+                                System.out.println("Invalid command!");
+                                System.out.println();
+                                continue;
+                            }
 
-                            response = in.readLine();
-                            System.out.println("Server: " + response);
+                            System.out.println("Server: " + commandOutput);
                         }
                         break;
                     } else {

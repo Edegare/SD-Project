@@ -4,23 +4,29 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.ServerSocket;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 
 class ClientHandler implements Runnable {
     private final Socket socket;
     private UserManager users;
     private DataManager data;
+    private final String object;
 
-    public ClientHandler(Socket socket, UserManager users, DataManager data) {
+    public ClientHandler(Socket socket, UserManager users, DataManager data, String object) {
         this.socket = socket;
         this.users = users;
         this.data = data;
+        this.object = object;
     }
 
 
     @Override
     public void run() {
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-             PrintWriter out = new PrintWriter(socket.getOutputStream())) {
+        try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream())); // read messages from client
+             PrintWriter out = new PrintWriter(socket.getOutputStream()); // to write messages to client
+             DataInputStream dataIn = new DataInputStream(socket.getInputStream()); // read data 
+             DataOutputStream dataOut = new DataOutputStream(socket.getOutputStream())) { // write data
 
             // ----------- Register and Login ------------------
             out.println("= Welcome to User Management System =");
@@ -60,7 +66,7 @@ class ClientHandler implements Runnable {
                     break;
                 }
 
-                // Handle register
+                // ------------- Handle register ------------
                 if (option == 1) {
                     if (users.register(username, pass)) {
                         out.println("New account created with username: " + username);
@@ -71,21 +77,29 @@ class ClientHandler implements Runnable {
                     }
                     continue;
                 }
-                // Handle login
+                // ------------ Handle login -------------
                 else if (option == 2) {
                     try {
                         if (users.authenticate(username, pass)) {
                             // user logged with sucess
                             out.println("success");
                             out.flush();
+
+                            // Tell client the type of object we dealing
+                            out.println(object);
+                            out.flush();
+
                             System.out.println(username + " authenticated!");
         
-                            String line;
-                            while ((line = in.readLine()) != null) {
-                                if (line.equals("end")) break;
-                                out.println("You wrote: " + line);
+                            String command;
+                            while (true) {
+                                command = in.readLine();
+                                if (command == null || command.equals("end")) break;
+                                // DO SOMETHING WITH THE COMMAND
+                                out.println(command);
                                 out.flush();
                             }
+                            // Log Out and leave 
                             users.logOut();
                             break;
                         } else {
@@ -120,6 +134,7 @@ public class MainServer {
         try {
             UserManager users = new UserManager(2);
             DataManager data = new DataManager();
+            String object = "contact";
             ServerSocket serverSocket = new ServerSocket(12345);
             System.out.println("Server waiting for clients on port 12345...");
 
@@ -131,7 +146,7 @@ public class MainServer {
                 System.out.println("Client connected: " + socket.getInetAddress().getHostAddress());
 
                 // Create a new thread to handle the client
-                Thread clientThread = new Thread(new ClientHandler(socket, users, data));
+                Thread clientThread = new Thread(new ClientHandler(socket, users, data, object));
                 clientThread.start();
             }
         } catch (IOException e) {
