@@ -74,9 +74,6 @@ public class MainClient {
                     if (response == null) break;
 
                     else if (response.equals("success")) { // If authenticated start data management
-                        
-                        String object = in.readLine(); // Type of the objects of the shared map
-                        if (object == null) break;
 
                         
 
@@ -86,7 +83,6 @@ public class MainClient {
 
                         String userInput;
 
-                        // Do something
                         while (true) {
                             
                             System.out.println("Enter a command ('help' to list commands):");
@@ -98,48 +94,84 @@ public class MainClient {
                             if (userInput.equals("help")) { // Help commands - list all commands
                                 System.out.println("List of commands:");
                                 System.out.println("help - List all commands.");
-                                System.out.println("put(String key, byte[] value) - Adds or updates a single key-value pair in the server.");
-                                System.out.println("get(String key) - Retrieves the value associated with the given key, or returns null if the key does not exist.");
-                                System.out.println("multiPut(Map<String, byte[]> mapValues) - Adds or updates multiple key-value pairs in the server.");
-                                System.out.println("multiGet(Set<String> keys) - Retrieves values for the specified keys and returns them as a map.");
+                                System.out.println("put key value - Adds or updates a single key-value pair in the server.");
+                                System.out.println("get key - Retrieves the value associated with the given key, or returns null if the key does not exist.");
+                                System.out.println("multiPut 3 key value key value key value - Adds or updates multiple key-value pairs in the server.");
+                                System.out.println("multiGet 3 key key key - Retrieves values for the specified keys and returns them as a map.");
                                 System.out.println("end - End program");
                                 System.out.println();
                                 continue;
                             }
-                            
 
-
-                            else if (userInput.equals("end")) { 
-                                out.println(userInput);
-                                out.flush();
-                                break;
-                            }
-
+                            // Parse
                             String[] tokens = userInput.split(" ");
-                            
                             if (tokens.length == 0 || tokens[0].isEmpty()) {
                                 System.out.println("Invalid command!");
                                 System.out.println();
                                 continue;
                             }
 
-                            String command = tokens[0];
-                            
-                            // Send command
-                            out.println(command);
-                            out.flush();
+                            String command = tokens[0].toLowerCase();
 
-                            String commandOutput = in.readLine();
-                            if (commandOutput == null) {
+                            // ---- Command Serializable ----
+
+                            // END CLIENT
+                            if (command.equals("end")) { 
+                                dataOut.writeUTF(command);
+                                dataOut.flush();
                                 break;
                             }
-                            else if (commandOutput.equals("invalid")) {
+                            // PUT COMMAND
+                            else if (command.equals("put")){
+                                if (tokens.length != 3) {
+                                    System.out.println("Invalid number of arguments! Command 'put' receives 2 arguments (key value)");
+                                    System.out.println();
+                                    continue;
+                                }
+                                dataOut.writeUTF(command);
+                                dataOut.flush();
+                                dataOut.writeUTF(tokens[1]);
+                                dataOut.writeInt(tokens[2].length());
+                                dataOut.writeBytes(tokens[2]);
+                                dataOut.flush();
+
+                                boolean sucess = dataIn.readBoolean();
+                                if (sucess) {
+                                    System.out.println("'"+ tokens[1] + "' updated.");
+                                    System.out.println();
+                                }
+                            }
+                            // GET COMMAND
+                            else if (command.equals("get")){
+                                if (tokens.length != 2) {
+                                    System.out.println("Invalid number of arguments! Command 'get' receives 1 argument (key)");
+                                    System.out.println();
+                                    continue;
+                                }
+                                dataOut.writeUTF(command);
+                                dataOut.flush();
+                                dataOut.writeUTF(tokens[1]);
+                                dataOut.flush();
+
+                                int nBytes = dataIn.readInt();
+                                if (nBytes==0) {
+                                    System.out.println("Key '" + tokens[1] + "' not found.");
+                                    System.out.println();
+                                }
+                                else {
+                                    byte[] value = dataIn.readNBytes(nBytes);
+                                    String valueStr = new String(value);
+                                    System.out.println("Value found: " + valueStr);
+                                }
+                            }
+                            // INVALID
+                            else {
                                 System.out.println("Invalid command!");
                                 System.out.println();
                                 continue;
                             }
 
-                            System.out.println("Server: " + commandOutput);
+            
                         }
                         break;
                     } else {

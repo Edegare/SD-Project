@@ -20,6 +20,10 @@ public class UserManager {
         this.maxSessions=maxSessions;
     }
 
+    // Get number of users logged in
+    public int getActiveSessions() {
+        return this.activeSessions;
+    }
 
     // Registers a new user
     public boolean register(String username, String password) {
