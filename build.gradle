@@ -1,0 +1,41 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'com.example'
+version = '1.0-SNAPSHOT'
+
+sourceCompatibility = '1.8' // ou a versão Java que você está usando
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Adicione aqui dependências externas, se houver (por exemplo, bibliotecas de testes)
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.7.0'
+}
+
+application {
+    // Defina as classes principais do servidor e cliente
+    mainClass = 'server.Server' // Classe principal do servidor por padrão
+}
+
+tasks.register('runServer', JavaExec) {
+    group = 'application'
+    description = 'Run the server application'
+    classpath = sourceSets.main.runtimeClasspath
+    main = 'server.Server' // Classe principal do servidor
+}
+
+tasks.register('runClient', JavaExec) {
+    group = 'application'
+    description = 'Run the client application'
+    classpath = sourceSets.main.runtimeClasspath
+    main = 'client.Client' // Classe principal do cliente
+}
+
+test {
+    useJUnitPlatform()
+}
