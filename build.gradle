@@ -34,6 +34,7 @@ tasks.register('runClient', JavaExec) {
     description = 'Run the client application'
     classpath = sourceSets.main.runtimeClasspath
     main = 'client.Client' // Classe principal do cliente
+    standardInput = System.in // Redireciona System.in
 }
 
 test {
