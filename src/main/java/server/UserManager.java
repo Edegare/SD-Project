@@ -1,10 +1,10 @@
+package server;
+
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.HashMap;
 import java.util.Map;
-
-import javax.management.RuntimeErrorException;
 
 
 public class UserManager {

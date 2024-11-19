@@ -1,62 +1,120 @@
 package server;
 
+import java.io.IOException;
+import java.io.EOFException;
+import java.net.Socket;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.IOException;
-import java.net.Socket;
 
-public class ClientHandler implements Runnable {
 
-    private Socket clientSocket;
-    private DataInputStream input;
-    private DataOutputStream output;
+class ClientHandler implements Runnable {
+    private final Socket socket;
+    private UserManager users;
+    private DataManager data;
 
-    public ClientHandler(Socket clientSocket) {
-        this.clientSocket = clientSocket;
-        try {
-            input = new DataInputStream(clientSocket.getInputStream());
-            output = new DataOutputStream(clientSocket.getOutputStream());
-        } catch (IOException e) {
-            System.err.println("Erro ao obter streams do cliente: " + e.getMessage());
-        }
+    public ClientHandler(Socket socket, UserManager users, DataManager data) {
+        this.socket = socket;
+        this.users = users;
+        this.data = data;
     }
+
 
     @Override
     public void run() {
-        try {
-            // Exemplo de comunicação simples com o cliente
-            output.writeUTF("Conexão estabelecida com o servidor!");
+        boolean authenticated = false;
+        try (DataInputStream dataIn = new DataInputStream(socket.getInputStream());
+             DataOutputStream dataOut = new DataOutputStream(socket.getOutputStream())) {
+    
+            dataOut.writeUTF("= Welcome to User Management System =");
+            dataOut.flush();
+    
+            int option = 0;
+    
+            // Check if client wants to register or login
+            while (true) {
 
-            // Loop de comunicação
-            String clientMessage;
-            while ((clientMessage = input.readUTF()) != null) {
-                System.out.println("Mensagem do cliente: " + clientMessage);
-
-                // Responde ao cliente
-                output.writeUTF("Servidor recebeu: " + clientMessage);
-
-                if (clientMessage.equalsIgnoreCase("exit")) {
-                    System.out.println("Cliente solicitou fim da conexão.");
-                    break;
+                option = dataIn.readInt();
+                
+                // Username and Password
+                String username = dataIn.readUTF();
+                if (username == null) break;
+    
+                String pass = dataIn.readUTF();
+                if (pass == null) break;
+    
+                if (option == 1) {  // Register
+                    if (users.register(username, pass)) {
+                        dataOut.writeUTF("New account created with username: " + username);
+                        dataOut.flush();
+                    } else {
+                        dataOut.writeUTF(username + " already exists!");
+                        dataOut.flush();
+                    }
+                    continue;
+                } else if (option == 2) {  // Login
+                    try {
+                        if (users.authenticate(username, pass)) {
+                            authenticated = true;
+                            dataOut.writeBoolean(true);
+                            dataOut.flush();
+    
+                            System.out.println(username + " authenticated!");
+    
+                            // Processing commands
+                            String command;
+                            while (true) {
+                                command = dataIn.readUTF();
+                                if (command == null || command.equals("end")) break;
+    
+                                else if (command.equals("put")) { //PUT COMMAND DESERIALIZE
+                                    String key = dataIn.readUTF();
+                                    int nBytes = dataIn.readInt();
+                                    byte[] value = dataIn.readNBytes(nBytes);
+    
+                                    this.data.put(key, value);
+                                    dataOut.writeBoolean(true);
+                                    dataOut.flush();
+                                } else if (command.equals("get")) { // GET COMMAND DESERIALIZE
+                                    String key = dataIn.readUTF();
+                                    byte[] value = this.data.get(key);
+    
+                                    if (value != null) {
+                                        dataOut.writeInt(value.length);
+                                        dataOut.write(value);
+                                    } else {
+                                        dataOut.writeInt(0); // Key not found
+                                    }
+                                    dataOut.flush();
+                                }
+                            }
+                            break;
+                        } else {
+                            dataOut.writeBoolean(false);
+                            dataOut.flush();
+                        }
+                    } catch (InterruptedException e) {
+                        System.err.println("Authentication interrupted for user: " + username);
+                        Thread.currentThread().interrupt();
+                    }
                 }
             }
+        } catch (EOFException e) {
+            System.out.println("Client disconnected unexpectedly.");
         } catch (IOException e) {
-            System.err.println("Erro de comunicação com o cliente: " + e.getMessage());
+            e.printStackTrace();
         } finally {
-            closeConnection();
-        }
-    }
-
-    private void closeConnection() {
-        try {
-            if (clientSocket != null && !clientSocket.isClosed()) {
-                clientSocket.close();
+            try {
+                // Ensures user is logged out only if authenticated
+                if (authenticated) {
+                    users.logOut();
+                    System.out.println("User logged out. Number of active sessions: " + users.getActiveSessions());
+                }
+                if (!socket.isClosed()) {
+                    socket.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-            if (input != null) input.close();
-            if (output != null) output.close();
-            System.out.println("Conexão com o cliente encerrada.");
-        } catch (IOException e) {
-            System.err.println("Erro ao fechar conexão com o cliente: " + e.getMessage());
         }
-    }
-}
+    }    
+}    
