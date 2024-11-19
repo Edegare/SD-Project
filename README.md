@@ -7,17 +7,20 @@
 Inside your repository:
 1. Compile:
 ```bash
-javac -d out src/*.java
+./gradlew build
 ```
 2. Start server:
 ```bash
-cd out/
-java MainServer
+java -cp build/classes/java/main server.Server
 ```
 3. Start client:
 ```bash
-cd out/
-java MainClient
+java -cp build/classes/java/main client.Client
+```
+
+4. Cleanup:
+```bash
+./gradlew clean
 ```
 
 ## Installation

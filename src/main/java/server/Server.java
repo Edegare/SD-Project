@@ -1,42 +1,44 @@
 package server;
 
 import java.io.IOException;
-import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.net.ServerSocket;
+
 
 public class Server {
-
     private static final int PORT = 12345; // Porta do servidor
-    private static final int MAX_CLIENTS = 10; // Número máximo de clientes para controle de threads
-
+    private static final int MAX_CLIENTS = 2; // Número máximo de clientes para controle de threads
+    
     private ServerSocket serverSocket;
-    private ExecutorService clientPool; // Gerencia um pool de threads para os clientes
+    private UserManager users;
+    private DataManager data;
 
     public Server() {
         try {
+            users = new UserManager(MAX_CLIENTS);
+            data = new DataManager();
             serverSocket = new ServerSocket(PORT);
-            clientPool = Executors.newFixedThreadPool(MAX_CLIENTS); // Limita o número de threads
-            System.out.println("Servidor iniciado e aguardando conexões na porta " + PORT);
+            System.out.println("Server waiting for clients on port 12345...");
+
         } catch (IOException e) {
             System.err.println("Erro ao iniciar o servidor: " + e.getMessage());
         }
     }
-
+    
     public void start() {
         try {
             while (true) {
-                // Aguarda uma conexão com o cliente
-                Socket clientSocket = serverSocket.accept();
-                System.out.println("Cliente conectado: " + clientSocket.getInetAddress());
 
-                // Cria um novo ClientHandler para lidar com o cliente
-                ClientHandler clientHandler = new ClientHandler(clientSocket);
-                clientPool.execute(clientHandler); // Executa o handler no pool de threads
+                // Accept a client connection
+                Socket socket = serverSocket.accept();
+                System.out.println("Client connected: " + socket.getInetAddress().getHostAddress());
+
+                // Create a new thread to handle the client
+                Thread clientThread = new Thread(new ClientHandler(socket, users, data));
+                clientThread.start();
             }
         } catch (IOException e) {
-            System.err.println("Erro ao aceitar conexão de cliente: " + e.getMessage());
+            e.printStackTrace();
         } finally {
             shutdown();
         }
@@ -47,13 +49,11 @@ public class Server {
             if (serverSocket != null && !serverSocket.isClosed()) {
                 serverSocket.close();
             }
-            clientPool.shutdown();
-            System.out.println("Servidor encerrado.");
+            System.out.println("Server closed.");
         } catch (IOException e) {
-            System.err.println("Erro ao encerrar o servidor: " + e.getMessage());
+            System.err.println("Error closing server: " + e.getMessage());
         }
     }
-
     public static void main(String[] args) {
         Server server = new Server();
         server.start();
