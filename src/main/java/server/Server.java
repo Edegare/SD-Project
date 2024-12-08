@@ -4,10 +4,11 @@ import java.io.IOException;
 import java.net.Socket;
 import java.net.ServerSocket;
 
+import conn.*;
 
 public class Server {
-    private static final int PORT = 12345; // Porta do servidor
-    private static final int MAX_CLIENTS = 2; // Número máximo de clientes para controle de threads
+    private static final int PORT = 12345; 
+    private static final int MAX_CLIENTS = 2; 
     
     private ServerSocket serverSocket;
     private UserManager users;
@@ -31,10 +32,11 @@ public class Server {
 
                 // Accept a client connection
                 Socket socket = serverSocket.accept();
+                TaggedConnection conn = new TaggedConnection(socket);
                 System.out.println("Client connected: " + socket.getInetAddress().getHostAddress());
 
                 // Create a new thread to handle the client
-                Thread clientThread = new Thread(new ClientHandler(socket, users, data));
+                Thread clientThread = new Thread(new ClientHandler(socket, users, data, conn));
                 clientThread.start();
             }
         } catch (IOException e) {

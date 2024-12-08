@@ -13,10 +13,12 @@ public class DataManager {
     private WriteLock l_write_manager = l_manager.writeLock();*/
 
     // Single Write 
-    public void put(String key, byte[] value) {
+    public boolean put(String key, byte[] value) {
         l_manager.lock();
         try {
+            if (value.length==0) return false;
             this.dataMap.put(key, value);
+            return true;
         } finally {
             l_manager.unlock();
         }
