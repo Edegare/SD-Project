@@ -1,42 +1,54 @@
 package client;
 
 import java.io.BufferedReader;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.Arrays;
+
+import conn.Frame;
+import conn.TaggedConnection;
+
 
 
 public class Client {
 
     private static final String SERVER_ADDRESS = "127.0.0.1"; // Endereço do servidor
     private static final int SERVER_PORT = 12345; // Porta do servidor
+    private Socket socket;
+    private int tag = 0;
 
-    public static void main(String[] args) {
-        try (Socket socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
-             BufferedReader systemIn = new BufferedReader(new InputStreamReader(System.in));
-             DataOutputStream dataOut = new DataOutputStream(socket.getOutputStream());
-             DataInputStream dataIn = new DataInputStream(socket.getInputStream())) {
+    public Client() {
+        try {
+            this.socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
+            System.out.println("Connection with server estabilished...");
+
+        } catch (IOException e) {
+            System.err.println("Error initializing client: " + e.getMessage());
+        }
+    }
+
+    public void start() {
+        try (BufferedReader systemIn = new BufferedReader(new InputStreamReader(System.in));
+             TaggedConnection conn = new TaggedConnection(socket);
+             Demultiplexer m = new Demultiplexer(conn)) {
 
             // ----------- Register and Login ------------------
-            
 
-            System.out.println(dataIn.readUTF());  // Welcome 
+            System.out.println("=== Data Manager ===");
 
-
-            int option = 0;
-            String regOrLogOption;
             
             // Prompt for register or login option
             while (true) {
 
+                int option = 0;
+                
                 System.out.println("Choose an option, write 1 or 2.");  // Register/Login prompt
                 System.out.println("1. Register");
                 System.out.println("2. Login");
                 System.out.println("Your Option:");
 
-                regOrLogOption = systemIn.readLine();
+                String regOrLogOption = systemIn.readLine();
                 if (regOrLogOption == null) {
                     break;
                 }
@@ -57,35 +69,48 @@ public class Client {
                     continue;
                 }
 
-                dataOut.writeInt(option);
-                dataOut.flush();
+                /* dataOut.writeInt(option);
+                dataOut.flush(); */
 
                 // Prompt for username
                 System.out.println("Username: ");
                 String username = systemIn.readLine();
-                dataOut.writeUTF(username);
-                dataOut.flush();
+                if (username == null) break;
+                else if (username.isEmpty()) {
+                    System.out.println("Username required!");
+                    continue;
+                }
 
                 // Prompt for password
                 System.out.println("Password: ");
                 String password = systemIn.readLine();
-                dataOut.writeUTF(password);
-                dataOut.flush();
+                if (password == null) break;
+                else if (password.isEmpty()) {
+                    System.out.println("Password required!");
+                    continue;
+                }
 
+                // Send option and credentials as a single frame
+                conn.send(option, (username + ":" + password).getBytes());
+
+                Frame regLogFrame = conn.receive(); // Receive server response
+                
                 // ------------ Create new account ----------------
                 if (option == 1) {
-                    System.out.println(dataIn.readUTF());
+                    String response = new String(regLogFrame.data);
+                    System.out.println(response);
                     System.out.println();
                 }
+
                 // ------------- Log in --------------
                 if (option == 2) {
-                    // Authentication
                     System.out.println("Waiting for server to authenticate user...");
-                    boolean isAuthenticated = dataIn.readBoolean();
+                    String response = new String(regLogFrame.data);
+                    System.out.println(response);
 
-                    if (isAuthenticated) { // If authenticated start data management
+                    if (response.equals("success")) { // If authenticated start data management
 
-                        
+                        m.start();
 
                         System.out.println("Logged in successfully!");
                         System.out.println();
@@ -93,10 +118,10 @@ public class Client {
 
                         String userInput;
 
+                        System.out.println("Enter a command ('help' to list commands):");
+
                         while (true) {
                             
-                            System.out.println("Enter a command ('help' to list commands):");
-
                             userInput = systemIn.readLine(); // Read command
                             if (userInput == null) break;
                             System.out.println();
@@ -106,8 +131,8 @@ public class Client {
                                 System.out.println("help - List all commands.");
                                 System.out.println("put key value - Adds or updates a single key-value pair in the server.");
                                 System.out.println("get key - Retrieves the value associated with the given key, or returns null if the key does not exist.");
-                                System.out.println("multiPut 3 key value key value key value - Adds or updates multiple key-value pairs in the server.");
-                                System.out.println("multiGet 3 key key key - Retrieves values for the specified keys and returns them as a map.");
+                                System.out.println("multiPut n key value key value key value... - Adds or updates n key-value pairs in the server.");
+                                System.out.println("multiGet n key key key... - Retrieves n values for the specified keys and returns them as a map.");
                                 System.out.println("end - End program");
                                 System.out.println();
                                 continue;
@@ -123,65 +148,22 @@ public class Client {
 
                             String command = tokens[0].toLowerCase();
 
+                            String[] rest = Arrays.copyOfRange(tokens, 1, tokens.length);
+
                             // ---- Command Serializable ----
 
                             // END CLIENT
                             if (command.equals("end")) { 
-                                dataOut.writeUTF(command);
-                                dataOut.flush();
+                                m.send(0, "".getBytes());
                                 break;
                             }
-                            // PUT COMMAND
-                            else if (command.equals("put")){
-                                if (tokens.length != 3) {
-                                    System.out.println("Invalid number of arguments! Command 'put' receives 2 arguments (key value)");
-                                    System.out.println();
-                                    continue;
-                                }
-                                dataOut.writeUTF(command);
-                                dataOut.flush();
-                                dataOut.writeUTF(tokens[1]);
-                                dataOut.writeInt(tokens[2].length());
-                                dataOut.writeBytes(tokens[2]);
-                                dataOut.flush();
-
-                                boolean sucess = dataIn.readBoolean();
-                                if (sucess) {
-                                    System.out.println("'"+ tokens[1] + "' updated.");
-                                    System.out.println();
-                                }
+                            else { // Send Commands
+                                Thread commandThread;
+                                this.tag ++; 
+                                commandThread = new Thread(new CommandHandler(m, tag, command, rest));
+                                // Start the command thread
+                                commandThread.start();
                             }
-                            // GET COMMAND
-                            else if (command.equals("get")){
-                                if (tokens.length != 2) {
-                                    System.out.println("Invalid number of arguments! Command 'get' receives 1 argument (key)");
-                                    System.out.println();
-                                    continue;
-                                }
-                                dataOut.writeUTF(command);
-                                dataOut.flush();
-                                dataOut.writeUTF(tokens[1]);
-                                dataOut.flush();
-
-                                int nBytes = dataIn.readInt();
-                                if (nBytes==0) {
-                                    System.out.println("Key '" + tokens[1] + "' not found.");
-                                    System.out.println();
-                                }
-                                else {
-                                    byte[] value = dataIn.readNBytes(nBytes);
-                                    String valueStr = new String(value);
-                                    System.out.println("Value found: " + valueStr);
-                                }
-                            }
-                            // INVALID
-                            else {
-                                System.out.println("Invalid command!");
-                                System.out.println();
-                                continue;
-                            }
-
-            
                         }
                         break;
                     } else {
@@ -189,14 +171,29 @@ public class Client {
                     }
                 }
             }
-
-            // close connection
-            socket.shutdownOutput();
-            socket.shutdownInput();
-            socket.close();
-
         } catch (IOException e) {
             e.printStackTrace();
         }
+        finally {
+            // close connection
+            shutdown();
+        }
+    }
+
+
+    private void shutdown() {
+        try {
+            if (socket != null && !socket.isClosed()) {
+                socket.close();
+            }
+            System.out.println("Server closed.");
+        } catch (IOException e) {
+            System.err.println("Error closing server: " + e.getMessage());
+        }
+    }
+
+    public static void main(String[] args) {
+        Client client = new Client();
+        client.start();
     }
 }
