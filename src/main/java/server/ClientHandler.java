@@ -4,6 +4,10 @@ import java.io.IOException;
 import java.io.EOFException;
 import java.net.Socket;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 import conn.*;
 
@@ -49,13 +53,13 @@ class ClientHandler implements Runnable {
                 String username = parts[0];
                 String pass = parts[1];
 
-                if (option == 1) {  // Register
+                if (option == 1) {  // ----------- Register
                     if (users.register(username, pass)) {
                         this.conn.send(option, ("New account created with username: " + username).getBytes());
                     } else {
                         this.conn.send(option, ("'" + username + "' already exists").getBytes());
                     }
-                } else if (option == 2) {  // Login
+                } else if (option == 2) {  // ------------- Login
                     
                     if (users.authenticate(username, pass)) {
                         conn.send(option, "success".getBytes());
@@ -63,7 +67,7 @@ class ClientHandler implements Runnable {
                         authenticated = true;
                         System.out.println(username + " authenticated!");
                         
-                        // Processing commands
+                        // -------- Processing commands
                         while (true) {
                             Frame commandFrame = this.conn.receive();
                             if (commandFrame == null || commandFrame.tag == 0) break;
@@ -75,11 +79,17 @@ class ClientHandler implements Runnable {
                             String[] rest = Arrays.copyOfRange(commandTokens, 1, commandTokens.length);
 
                             // handle commands
-                            Thread.sleep(3000);
+                            //Thread.sleep(3000);
                             if (command.equals("put")) { 
                                 handlePut(tag, rest);
                             } else if (command.equals("get")) { 
                                 handleGet(tag, rest);
+                            }
+                            else if (command.equals("multiput")) {
+                                handleMultiPut(tag, rest);
+                            }
+                            else if (command.equals("multiget")) {
+                                handleMultiGet(tag, rest);
                             }
                             
                         }
@@ -112,6 +122,7 @@ class ClientHandler implements Runnable {
         }
     }
     
+    // ------------------ handle commands ------------------
     private void handlePut(int tag, String[] commandTokens) throws IOException {
         if (commandTokens.length != 2) {
             conn.send(tag, "Invalid number of arguments for 'put'. Requires key and value.".getBytes());
@@ -143,5 +154,68 @@ class ClientHandler implements Runnable {
         } else {
             conn.send(tag, "".getBytes());
         }
+    }
+
+    private void handleMultiGet(int tag, String[] commandTokens) throws IOException {
+        if (commandTokens.length < 2) {
+            conn.send(tag, "Invalid arguments! Requires at least one key.".getBytes());
+            return;
+        }
+
+        int n;
+        try {
+            n = Integer.parseInt(commandTokens[0]); 
+        } catch (NumberFormatException ex) {
+            conn.send(tag, "Invalid number of keys specified.".getBytes());
+            return;
+        }
+
+        if (commandTokens.length != 1 + n) { 
+            conn.send(tag, ("Invalid arguments! Command 'multiGet' requires " + n + " keys.").getBytes());
+            return;
+        }
+
+        Set<String> keys = new HashSet<>(Arrays.asList(commandTokens).subList(1, commandTokens.length));
+        Map<String, byte[]> results = this.data.multiGet(keys);
+
+        for (String key : keys) {
+            byte[] value = results.getOrDefault(key, null);
+            if (value == null) {
+                conn.send(tag, key.getBytes()); // return just key if no value found
+            } else {
+                conn.send(tag, (key + " " + new String(value)).getBytes()); // return key and value if found
+            }
+        }
+    }
+
+
+    private void handleMultiPut(int tag, String[] commandTokens) throws IOException {
+        if (commandTokens.length < 2) {
+            conn.send(tag, "Invalid arguments! Requires at least one key-value pair.".getBytes());
+            return;
+        }
+
+        int n;
+        try {
+            n = Integer.parseInt(commandTokens[0]); 
+        } catch (NumberFormatException ex) {
+            conn.send(tag, "Invalid number of key-value pairs specified.".getBytes());
+            return;
+        }
+
+        if (commandTokens.length != 1 + (2 * n)) { 
+            conn.send(tag, ("Invalid arguments! Command 'multiPut' requires " + n + " key-value pairs.").getBytes());
+            return;
+        }
+
+        Map<String, byte[]> mapValues = new HashMap<>();
+        for (int i = 1; i < commandTokens.length; i += 2) {
+            String key = commandTokens[i];
+            String value = commandTokens[i + 1];
+            mapValues.put(key, value.getBytes());
+        }
+
+        this.data.multiPut(mapValues);
+        conn.send(tag, "All keys updated successfully.".getBytes());
     }
 }    

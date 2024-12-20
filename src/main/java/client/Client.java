@@ -159,7 +159,7 @@ public class Client {
                             }
                             else { // Send Commands
                                 Thread commandThread;
-                                this.tag ++; 
+                                this.tag++; 
                                 commandThread = new Thread(new CommandHandler(m, tag, command, rest));
                                 // Start the command thread
                                 commandThread.start();
@@ -186,7 +186,7 @@ public class Client {
             if (socket != null && !socket.isClosed()) {
                 socket.close();
             }
-            System.out.println("Server closed.");
+            System.out.println("Connection closed.");
         } catch (IOException e) {
             System.err.println("Error closing server: " + e.getMessage());
         }
