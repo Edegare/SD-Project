@@ -22,6 +22,10 @@ class CommandHandler implements Runnable {
                 this.handlePut();
             } else if (this.command.equals("get")) {
                 this.handleGet();
+            } else if (this.command.equals("multiget")) {
+                this.handleMultiGet();
+            } else if (this.command.equals("multiput")) {
+                this.handleMultiPut();
             } else {
                 System.err.println("Unsupported command: " + command);
             }
@@ -65,27 +69,86 @@ class CommandHandler implements Runnable {
         }
     }
 
-    /*
-    try(int n = Integer.parseInt(tokens[1])) {
-    } catch (NumberFormatException ex) {
-        System.out.println("Invalid command!");
-        continue;
-    } 
+    private void handleMultiPut() throws IOException, InterruptedException {
+        if (arguments.length < 3) {
+            System.out.println("(" + tag + ") Invalid number of arguments for 'multiPut'.");
+            return;
+        }
+    
+        int n;
+        try {
+            n = Integer.parseInt(arguments[0]); // Get first argument with number of pairs
+        } catch (NumberFormatException ex) {
+            System.out.println("(" + tag + ") Invalid number of pairs specified for 'multiPut'.");
+            return;
+        }
+    
+        if (arguments.length != 1 + (2 * n)) {  // Check if n matches the number of pair key value
+            System.out.println("(" + tag + ") Invalid arguments! Command 'multiPut' requires " + n + " key-value pairs.");
+            return;
+        }
+    
 
-    number += 1;
-    if (tokens.length < 4 || rest.length != number) {
-        System.out.println("Invalid arguments! Command 'multiPut' requires an number '" + (number) + "' of key-value pairs.");
-        continue;
+        StringBuilder dataBuilder = new StringBuilder(command);
+        dataBuilder.append(" ").append(n); 
+        for (int i = 1; i < arguments.length; i++) {
+            dataBuilder.append(" ").append(arguments[i]);
+        }
+    
+        // Send to server
+        m.send(tag, dataBuilder.toString().getBytes());
+    
+        // Receive response
+        byte[] response = m.receive(tag);
+        String responseString = new String(response);
+    
+        System.out.println("(" + tag + ") " + responseString);
     }
-    try(int n = Integer.parseInt(arguments[0])) {
-    } catch (NumberFormatException ex) {
-        System.out.println("Invalid command!");
-        continue;
-    } 
+    
 
-    number += 1;
-    if (tokens.length < 3 || rest.length != number) {
-        System.out.println("Invalid arguments! Command 'multiGet' requires an number '" + (number) + "' of keys.");
-        continue;
-    } */
+    private void handleMultiGet() throws IOException, InterruptedException {
+        if (arguments.length < 2) {
+            System.out.println("(" + tag + ") Invalid number of arguments for 'multiGet'.");
+            return;
+        }
+    
+        int n;
+        try {
+            n = Integer.parseInt(arguments[0]); // get number of keys
+        } catch (NumberFormatException ex) {
+            System.out.println("(" + tag + ") Invalid number of keys specified for 'multiGet'.");
+            return;
+        }
+    
+        if (arguments.length != 1 + n) { // check if n matches
+            System.out.println("(" + tag + ") Invalid arguments! Command 'multiGet' requires " + n + " keys.");
+            return;
+        }
+    
+        StringBuilder dataBuilder = new StringBuilder(command);
+        dataBuilder.append(" ").append(n); 
+        for (int i = 1; i < arguments.length; i++) {
+            dataBuilder.append(" ").append(arguments[i]);
+        }
+    
+        // Send to server
+        m.send(tag, dataBuilder.toString().getBytes());
+
+        for (int i = 0; i < n; i ++) {
+            byte[] response = m.receive(tag);
+            String responseString = new String(response);
+            String[] pairs = responseString.split(" ");
+
+            if (pairs.length == 1) {
+                System.out.println("(" + tag + ") Value not found to Key: " + pairs[0]);
+            }
+            else if (pairs.length == 2) {
+                System.out.println("(" + tag + ") Key: " + pairs[0] + ", Value: " + pairs[1]);
+            }
+            else {
+                System.out.println("(" + tag + ") Error");
+            }
+        } 
+    }
+    
 }

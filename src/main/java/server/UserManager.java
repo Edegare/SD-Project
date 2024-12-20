@@ -62,11 +62,11 @@ public class UserManager {
     }
 
     // Log Out user
-    public void logOut () {
+    public void logOut() {
         lock.lock();
         try {
             this.activeSessions--;
-            this.cond.signalAll(); // Sign all threads that there is a free spot
+            this.cond.signal(); // Sign a thread that there is a free spot
         } finally {
             lock.unlock();
         }
