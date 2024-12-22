@@ -62,7 +62,7 @@ class ClientHandler implements Runnable {
                 } else if (option == 2) {  // ------------- Login
                     
                     if (users.authenticate(username, pass)) {
-                        conn.send(option, "success".getBytes());
+                        conn.send(option, new byte[]{1});
 
                         authenticated = true;
                         System.out.println(username + " authenticated!");
@@ -95,7 +95,7 @@ class ClientHandler implements Runnable {
                         }
                         break;
                     } else {
-                        conn.send(option, "".getBytes());
+                        conn.send(option, new byte[]{0});
                     }
 
                 }

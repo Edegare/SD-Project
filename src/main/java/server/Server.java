@@ -22,7 +22,7 @@ public class Server {
             System.out.println("Server waiting for clients on port 12345...");
 
         } catch (IOException e) {
-            System.err.println("Erro ao iniciar o servidor: " + e.getMessage());
+            System.err.println("Error: " + e.getMessage());
         }
     }
     
