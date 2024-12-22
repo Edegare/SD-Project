@@ -72,9 +72,6 @@ public class Client {
                     continue;
                 }
 
-                /* dataOut.writeInt(option);
-                dataOut.flush(); */
-
                 // Prompt for username
                 System.out.println("Username: ");
                 String username = systemIn.readLine();
@@ -108,10 +105,8 @@ public class Client {
                 // ------------- Log in --------------
                 if (option == 2) {
                     System.out.println("Waiting for server to authenticate user...");
-                    String response = new String(regLogFrame.data);
-                    System.out.println(response);
 
-                    if (response.equals("success")) { // If authenticated start data management
+                    if (regLogFrame.data.length > 0 && regLogFrame.data[0] == 1) { // If authenticated start data management
 
                         // Start demultiplexer to send commands
                         m.start();
