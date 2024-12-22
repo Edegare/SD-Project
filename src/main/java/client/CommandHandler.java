@@ -39,8 +39,10 @@ class CommandHandler implements Runnable {
             System.out.println("(" + tag + ") Invalid number of arguments for 'put'.");
             return;
         }
+        
 
         String data = command + " " + arguments[0] + " " + arguments[1];
+        System.out.println("(" + tag + ") Sending '"+ data +"' command.");
         m.send(tag, data.getBytes());
 
         byte[] response = m.receive(tag);
@@ -55,6 +57,7 @@ class CommandHandler implements Runnable {
         }
 
         String data = command + " " + arguments[0];
+        System.out.println("(" + tag + ") Sending '"+ data +"' command.");
         m.send(tag, data.getBytes());
 
 
@@ -63,7 +66,7 @@ class CommandHandler implements Runnable {
 
 
         if (responseString.isEmpty()) {
-            System.out.println("(" + tag + ") Key not found.");
+            System.out.println("(" + tag + ") Key '"+ arguments[0] +"' not found.");
         } else {
             System.out.println("(" + tag + ") Value of key " + arguments[0] + ": " + responseString);
         }
@@ -94,6 +97,7 @@ class CommandHandler implements Runnable {
         for (int i = 1; i < arguments.length; i++) {
             dataBuilder.append(" ").append(arguments[i]);
         }
+        System.out.println("(" + tag + ") Sending '"+ dataBuilder +"' command.");
     
         // Send to server
         m.send(tag, dataBuilder.toString().getBytes());
@@ -130,6 +134,7 @@ class CommandHandler implements Runnable {
         for (int i = 1; i < arguments.length; i++) {
             dataBuilder.append(" ").append(arguments[i]);
         }
+        System.out.println("(" + tag + ") Sending '"+ dataBuilder +"' command.");
     
         // Send to server
         m.send(tag, dataBuilder.toString().getBytes());
