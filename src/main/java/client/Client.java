@@ -10,11 +10,14 @@ import conn.Frame;
 import conn.TaggedConnection;
 
 
+/* 
+ * Client - Will handle the inputs from the user, 
+ *          sending commands and receiveing their output from the server 
+ */
+public class Client { 
 
-public class Client {
-
-    private static final String SERVER_ADDRESS = "127.0.0.1"; // Endereço do servidor
-    private static final int SERVER_PORT = 12345; // Porta do servidor
+    private static final String SERVER_ADDRESS = "127.0.0.1"; // Server address
+    private static final int SERVER_PORT = 12345; // Server port
     private Socket socket;
     private int tag = 0;
 
@@ -110,6 +113,7 @@ public class Client {
 
                     if (response.equals("success")) { // If authenticated start data management
 
+                        // Start demultiplexer to send commands
                         m.start();
 
                         System.out.println("Logged in successfully!");
@@ -121,20 +125,23 @@ public class Client {
                         System.out.println("Enter a command ('help' to list commands):");
 
                         while (true) {
-                            
-                            userInput = systemIn.readLine(); // Read command
-                            if (userInput == null) break;
+
                             System.out.println();
 
+                            userInput = systemIn.readLine(); // Read command
+                            if (userInput == null) break;
+                            
+
                             if (userInput.equals("help")) { // Help commands - list all commands
-                                System.out.println("List of commands:");
-                                System.out.println("help - List all commands.");
-                                System.out.println("put key value - Adds or updates a single key-value pair in the server.");
-                                System.out.println("get key - Retrieves the value associated with the given key, or returns null if the key does not exist.");
-                                System.out.println("multiPut n key value key value key value... - Adds or updates n key-value pairs in the server.");
-                                System.out.println("multiGet n key key key... - Retrieves n values for the specified keys and returns them as a map.");
-                                System.out.println("end - End program");
-                                System.out.println();
+                                String helpMessage = "List of commands:\n" +
+                                                    "help - List all commands.\n" +
+                                                    "put key value - Adds or updates a single key-value pair in the server.\n" +
+                                                    "get key - Retrieves the value associated with the given key, or returns null if the key does not exist.\n" +
+                                                    "multiPut n key value key value key value... - Adds or updates n key-value pairs in the server.\n" +
+                                                    "multiGet n key key key... - Retrieves n values for the specified keys and returns them as a map.\n" +
+                                                    "end - End program\n";
+
+                                System.out.println(helpMessage);
                                 continue;
                             }
 
@@ -163,6 +170,7 @@ public class Client {
                                 commandThread = new Thread(new CommandHandler(m, tag, command, rest));
                                 // Start the command thread
                                 commandThread.start();
+
                             }
                         }
                         break;
