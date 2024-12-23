@@ -2,25 +2,30 @@
 
 ## Requirements
 - JavaSDK
+- ApacheMaven
 
 ## Usage
 Inside your repository:
-1. Compile:
+1. Clean and Compile:
 ```bash
-./gradlew build
+mvn clean compile
 ```
 2. Start server:
 ```bash
-java -cp build/classes/java/main server.Server
+mvn exec:java -Pserver
 ```
 3. Start client:
 ```bash
-java -cp build/classes/java/main client.Client
+mvn exec:java -Pclient
 ```
 
-4. Cleanup:
+0. Just clean:
 ```bash
-./gradlew clean
+mvn clean
+```
+0. Just compile:
+```bash
+mvn compile
 ```
 
 ## Installation
