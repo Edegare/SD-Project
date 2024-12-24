@@ -102,7 +102,9 @@ class ClientHandler implements Runnable {
                             else if (command.equals("multiget")) {
                                 handleMultiGet(tag, rest);
                             }
-                            
+                            else {
+                                conn.send(tag, ("Unsupported command: " + command).getBytes());
+                            }
                         }
                         break;
                     } else if (authentication_result == 0) { // Login - Invalid credentials
@@ -114,12 +116,13 @@ class ClientHandler implements Runnable {
                 }
             }
         } catch (EOFException e) {
-            System.out.println("Client disconnected unexpectedly.");
+            System.out.println("Client disconnected unexpectedly (EOF): " + e.getMessage());
         } catch (IOException e) {
-            System.out.println("Client disconnected unexpectedly.");
-        } catch (InterruptedException e) {
-            System.out.println("Client disconnected unexpectedly.");
-        } finally {
+            System.out.println("Client disconnected unexpectedly (IO): " + e.getMessage());
+        } catch (Exception e) {
+            System.out.println("Client disconnected unexpectedly (Exception): " + e.getMessage());
+        }
+         finally {
             try {
                 // Ensures user is logged out only if authenticated
                 if (authenticated) {

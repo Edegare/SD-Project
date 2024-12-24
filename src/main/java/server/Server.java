@@ -8,7 +8,7 @@ import conn.*;
 
 public class Server {
     private static final int PORT = 12345; 
-    private static final int MAX_CLIENTS = 2; 
+    private static final int MAX_CLIENTS = 10; 
     
     private ServerSocket serverSocket;
     private UserManager users;
