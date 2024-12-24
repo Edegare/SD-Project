@@ -17,6 +17,8 @@ class ClientHandler implements Runnable {
     private UserManager users;
     private DataManager data;
     private TaggedConnection conn;
+    private String client_username;
+
 
     public ClientHandler(Socket socket, UserManager users, DataManager data, TaggedConnection conn) {
         this.socket = socket;
@@ -25,6 +27,13 @@ class ClientHandler implements Runnable {
         this.conn = conn;
     }
 
+    private String getClient_username() {
+        return client_username;
+    }
+
+    private void setClient_username(String client_username) {
+        this.client_username = client_username;
+    }
 
     @Override
     public void run() {
@@ -60,10 +69,12 @@ class ClientHandler implements Runnable {
                         this.conn.send(option, ("'" + username + "' already exists").getBytes());
                     }
                 } else if (option == 2) {  // ------------- Login
-                    
-                    if (users.authenticate(username, pass)) {
+
+                    int authentication_result = users.authenticate(username,pass);
+                    if (authentication_result == 1) { // Successful login
                         conn.send(option, new byte[]{1});
 
+                        setClient_username(username);
                         authenticated = true;
                         System.out.println(username + " authenticated!");
                         
@@ -94,8 +105,10 @@ class ClientHandler implements Runnable {
                             
                         }
                         break;
-                    } else {
+                    } else if (authentication_result == 0) { // Login - Invalid credentials
                         conn.send(option, new byte[]{0});
+                    } else { // Login - User is already logged by another client
+                        conn.send(option, new byte[]{2});
                     }
 
                 }
@@ -110,7 +123,8 @@ class ClientHandler implements Runnable {
             try {
                 // Ensures user is logged out only if authenticated
                 if (authenticated) {
-                    users.logOut();
+
+                    users.logOut(getClient_username());
                     System.out.println("User logged out. Number of active sessions: " + users.getActiveSessions());
                 }
                 if (socket != null && !socket.isClosed()) {

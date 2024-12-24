@@ -169,7 +169,10 @@ public class Client {
                             }
                         }
                         break;
-                    } else {
+                    } else if (regLogFrame.data.length > 0 && regLogFrame.data[0] == 2) {
+                        System.out.println("There's another client already logged in this account!");
+                    }
+                    else {
                         System.out.println("Invalid credentials!");
                     }
                 }

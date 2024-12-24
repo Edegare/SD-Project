@@ -9,7 +9,8 @@ import java.util.Map;
 
 public class UserManager {
     private Map<String, String> users = new HashMap<>();  // Store username and password
-    
+    private Map<String, String> loggedUsers = new HashMap<>(); // Store the users that are already logged in
+
     private Lock lock = new ReentrantLock();  
     private Condition cond = lock.newCondition();
 
@@ -41,30 +42,34 @@ public class UserManager {
 
 
     // Authenticates an existing user
-    public boolean authenticate(String username, String password) throws InterruptedException{
+    public int authenticate(String username, String password) throws InterruptedException{
         lock.lock();
         try {
+            if (loggedUsers.containsKey(username)) { // If the user in question is already logged by another client
+                return 2;
+            }
             if (users.containsKey(username) && users.get(username).equals(password)) {
                 
                 while (this.activeSessions >= this.maxSessions) { // Wait till a user log out
                     this.cond.await();
                 }
                 
-
+                this.loggedUsers.put(username, password);
                 this.activeSessions++; // New user logged
-                return true;
+                return 1;
 
             }
-            return false;
+            return 0;
         } finally {
             lock.unlock();
         }
     }
 
     // Log Out user
-    public void logOut() {
+    public void logOut(String username) {
         lock.lock();
         try {
+            this.loggedUsers.remove(username);
             this.activeSessions--;
             this.cond.signal(); // Sign a thread that there is a free spot
         } finally {
