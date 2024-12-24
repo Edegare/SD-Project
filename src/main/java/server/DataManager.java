@@ -3,12 +3,14 @@ package server;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class DataManager {
     private Map<String, byte[]> dataMap = new HashMap<>();
     private Lock l_manager = new ReentrantLock();
+    private Condition c = l_manager.newCondition();
     /* private ReadLock l_read_manager = l_manager.readLock();
     private WriteLock l_write_manager = l_manager.writeLock();*/
 
@@ -58,6 +60,25 @@ public class DataManager {
                 }
             }
             return res;
+        } finally {
+            l_manager.unlock();
+        }
+    }
+
+    // Conditional get
+    public byte[] getWhen(String key, String keyCond, byte[] valueCond) throws InterruptedException{
+        l_manager.lock();
+
+        try {
+            byte[] v = this.dataMap.get(keyCond);
+
+            // Check if value of the keycond is equal to the given value
+            while (v != valueCond) {
+                c.await();
+                v = this.dataMap.get(keyCond);
+            }
+            
+            return this.dataMap.getOrDefault(key, null);            
         } finally {
             l_manager.unlock();
         }
