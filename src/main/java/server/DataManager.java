@@ -12,8 +12,6 @@ public class DataManager {
     private Map<String, byte[]> dataMap = new HashMap<>();
     private Lock l_manager = new ReentrantLock();
     private Condition c = l_manager.newCondition();
-    /* private ReadLock l_read_manager = l_manager.readLock();
-    private WriteLock l_write_manager = l_manager.writeLock();*/
 
     // Single Write 
     public boolean put(String key, byte[] value) {
