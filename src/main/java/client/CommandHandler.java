@@ -177,7 +177,7 @@ class CommandHandler implements Runnable {
         if (responseString.isEmpty()) {
             System.out.println("(" + tag + ") Condition met but Key '"+ arguments[0] +"' not found.");
         } else {
-            System.out.println("(" + tag + ") Condition met, value of key " + arguments[0] + ": " + responseString);
+            System.out.println("(" + tag + ") Condition met, value of key " + arguments[0] + ": " + responseString + ".");
         }
     }
     
