@@ -45,13 +45,18 @@ public class CommandExecutor implements Runnable {
         try {
             if (this.command.equals("put")) {
                 this.handlePut(this.tag, this.commandArguments);
+                //System.out.println("vou fazer o comando put para o " + this.client_username);
             } else if (this.command.equals("get")) {
                 this.handleGet(this.tag, this.commandArguments);
+                //System.out.println("vou fazer o comando get para o " + this.client_username);
             } else if (this.command.equals("multiget")) {
+                //System.out.println("vou fazer o comando multiGet para o " + this.client_username);
                 this.handleMultiGet(this.tag, this.commandArguments);
             } else if (this.command.equals("multiput")) {
+                //System.out.println("vou fazer o comando multiPut para o " + this.client_username);
                 this.handleMultiPut(this.tag, this.commandArguments);
             } else if (this.command.equals("getwhen")) {
+                //System.out.println("vou fazer o comando getWhen para o " + this.client_username);
                 this.handleGetWhen(this.tag, this.commandArguments);
             } else {
                 this.conn.send(tag, ("Unsupported command: " + this.command).getBytes());

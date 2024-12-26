@@ -3,6 +3,7 @@ package server;
 import java.io.IOException;
 import java.io.EOFException;
 import java.net.Socket;
+import java.util.concurrent.ThreadPoolExecutor;
 
 import conn.*;
 
@@ -13,13 +14,15 @@ class ClientHandler implements Runnable {
     private DataManager data;
     private TaggedConnection conn;
     private String client_username;
+    private ThreadPoolExecutor sharedCommandThreadPool;
 
 
-    public ClientHandler(Socket socket, UserManager users, DataManager data, TaggedConnection conn) {
+    public ClientHandler(Socket socket, UserManager users, DataManager data, TaggedConnection conn, ThreadPoolExecutor commandThreadPool) {
         this.socket = socket;
         this.users = users;
         this.data = data;
         this.conn = conn;
+        this.sharedCommandThreadPool = commandThreadPool;
     }
 
     private String getClient_username() {
@@ -79,8 +82,7 @@ class ClientHandler implements Runnable {
                             if (commandFrame == null || commandFrame.tag == 0) break; // tag == 0 implies end command from client
 
                             // create CommandExecutor to handle the command - thread per command structure
-                            CommandExecutor commandExecutor = new CommandExecutor(commandFrame, client_username, data, conn);
-                            new Thread(commandExecutor).start();
+                            sharedCommandThreadPool.submit(new CommandExecutor(commandFrame, client_username, data, conn));
                         }
                         break;
                     } else if (authentication_result == 0) { // Login - Invalid credentials

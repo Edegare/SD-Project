@@ -6,10 +6,9 @@
   <component name="ChangeListManager">
     <list default="true" id="aaf457ae-c0d7-4655-bc2b-a0c34fa83f91" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/client/Client.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/client/Client.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/client/CommandHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/client/CommandHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/server/ClientHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/server/ClientHandler.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/server/CommandExecutor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/server/CommandExecutor.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/server/DataManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/server/DataManager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/server/Server.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/server/Server.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -76,6 +75,7 @@
       <workItem from="1735159600061" duration="15113000" />
       <workItem from="1735204372871" duration="3365000" />
       <workItem from="1735207791587" duration="72000" />
+      <workItem from="1735250672745" duration="2920000" />
     </task>
     <servers />
   </component>
