@@ -81,30 +81,11 @@ class ClientHandler implements Runnable {
                         // -------- Processing commands
                         while (true) {
                             Frame commandFrame = this.conn.receive();
-                            if (commandFrame == null || commandFrame.tag == 0) break;
+                            if (commandFrame == null || commandFrame.tag == 0) break; // tag == 0 implies end command from client
 
-                            int tag = commandFrame.tag;
-
-                            String[] commandTokens = new String(commandFrame.data).split(" ");
-                            String command = commandTokens[0];
-                            String[] rest = Arrays.copyOfRange(commandTokens, 1, commandTokens.length);
-
-                            // handle commands
-                            //Thread.sleep(3000);
-                            if (command.equals("put")) { 
-                                handlePut(tag, rest);
-                            } else if (command.equals("get")) { 
-                                handleGet(tag, rest);
-                            }
-                            else if (command.equals("multiput")) {
-                                handleMultiPut(tag, rest);
-                            }
-                            else if (command.equals("multiget")) {
-                                handleMultiGet(tag, rest);
-                            }
-                            else {
-                                conn.send(tag, ("Unsupported command: " + command).getBytes());
-                            }
+                            // create CommandExecutor to handle the command - thread per command structure
+                            CommandExecutor commandExecutor = new CommandExecutor(commandFrame, client_username, data, conn);
+                            new Thread(commandExecutor).start();
                         }
                         break;
                     } else if (authentication_result == 0) { // Login - Invalid credentials
@@ -128,7 +109,7 @@ class ClientHandler implements Runnable {
                 if (authenticated) {
 
                     users.logOut(getClient_username());
-                    System.out.println("User logged out. Number of active sessions: " + users.getActiveSessions());
+                    System.out.println(getClient_username()+" logged out. Number of active sessions: " + users.getActiveSessions());
                 }
                 if (socket != null && !socket.isClosed()) {
                     socket.close();
@@ -137,102 +118,5 @@ class ClientHandler implements Runnable {
                 e.printStackTrace();
             }
         }
-    }
-    
-    // ------------------ handle commands ------------------
-    private void handlePut(int tag, String[] commandTokens) throws IOException {
-        if (commandTokens.length != 2) {
-            conn.send(tag, "Invalid number of arguments for 'put'. Requires key and value.".getBytes());
-            return;
-        }
-
-        String key = commandTokens[0];
-        byte[] value = commandTokens[1].getBytes();
-        
-        if (this.data.put(key, value)) {
-            conn.send(tag, ("Key '" + key + "' updated successfully.").getBytes());
-        }
-        else {
-            conn.send(tag, "Value cannot be empty.".getBytes());
-        }
-    }
-
-    private void handleGet(int tag, String[] commandTokens) throws IOException {
-        if (commandTokens.length != 1) {
-            conn.send(tag, "Invalid number of arguments for 'get'. Requires key.".getBytes());
-            return;
-        }
-
-        String key = commandTokens[0];
-        byte[] value = this.data.get(key);
-
-        if (value != null) {
-            conn.send(tag, value);
-        } else {
-            conn.send(tag, "".getBytes());
-        }
-    }
-
-    private void handleMultiGet(int tag, String[] commandTokens) throws IOException {
-        if (commandTokens.length < 2) {
-            conn.send(tag, "Invalid arguments! Requires at least one key.".getBytes());
-            return;
-        }
-
-        int n;
-        try {
-            n = Integer.parseInt(commandTokens[0]); 
-        } catch (NumberFormatException ex) {
-            conn.send(tag, "Invalid number of keys specified.".getBytes());
-            return;
-        }
-
-        if (commandTokens.length != 1 + n) { 
-            conn.send(tag, ("Invalid arguments! Command 'multiGet' requires " + n + " keys.").getBytes());
-            return;
-        }
-
-        Set<String> keys = new HashSet<>(Arrays.asList(commandTokens).subList(1, commandTokens.length));
-        Map<String, byte[]> results = this.data.multiGet(keys);
-
-        for (String key : keys) {
-            byte[] value = results.getOrDefault(key, null);
-            if (value == null) {
-                conn.send(tag, key.getBytes()); // return just key if no value found
-            } else {
-                conn.send(tag, (key + " " + new String(value)).getBytes()); // return key and value if found
-            }
-        }
-    }
-
-
-    private void handleMultiPut(int tag, String[] commandTokens) throws IOException {
-        if (commandTokens.length < 2) {
-            conn.send(tag, "Invalid arguments! Requires at least one key-value pair.".getBytes());
-            return;
-        }
-
-        int n;
-        try {
-            n = Integer.parseInt(commandTokens[0]); 
-        } catch (NumberFormatException ex) {
-            conn.send(tag, "Invalid number of key-value pairs specified.".getBytes());
-            return;
-        }
-
-        if (commandTokens.length != 1 + (2 * n)) { 
-            conn.send(tag, ("Invalid arguments! Command 'multiPut' requires " + n + " key-value pairs.").getBytes());
-            return;
-        }
-
-        Map<String, byte[]> mapValues = new HashMap<>();
-        for (int i = 1; i < commandTokens.length; i += 2) {
-            String key = commandTokens[i];
-            String value = commandTokens[i + 1];
-            mapValues.put(key, value.getBytes());
-        }
-
-        this.data.multiPut(mapValues);
-        conn.send(tag, "All keys updated successfully.".getBytes());
     }
 }    
