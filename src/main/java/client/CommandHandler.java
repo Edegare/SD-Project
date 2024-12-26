@@ -26,7 +26,10 @@ class CommandHandler implements Runnable {
                 this.handleMultiGet();
             } else if (this.command.equals("multiput")) {
                 this.handleMultiPut();
-            } else {
+            } else if (this.command.equals("getwhen")) {
+                this.handleGeTWhen();
+            }
+            else {
                 System.err.println("Unsupported command: " + command);
             }
         } catch (IOException | InterruptedException e) {
@@ -154,6 +157,28 @@ class CommandHandler implements Runnable {
                 System.out.println("(" + tag + ") Error");
             }
         } 
+    }
+
+    private void handleGeTWhen() throws IOException, InterruptedException {
+        if (arguments.length != 3) {
+            System.out.println("(" + tag + ") Invalid number of arguments for 'getWhen'.");
+            return;
+        }
+
+        String data = command + " " + arguments[0] + " " + arguments[1] + " " + arguments[2];
+        System.out.println("(" + tag + ") Sending '"+ data +"' command.");
+        m.send(tag, data.getBytes());
+
+
+        byte[] response = m.receive(tag);
+        String responseString = new String(response);
+
+
+        if (responseString.isEmpty()) {
+            System.out.println("(" + tag + ") Condition met but Key '"+ arguments[0] +"' not found.");
+        } else {
+            System.out.println("(" + tag + ") Condition met, value of key " + arguments[0] + ": " + responseString);
+        }
     }
     
 }

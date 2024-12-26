@@ -1,5 +1,6 @@
 package server;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -20,6 +21,7 @@ public class DataManager {
         try {
             if (value.length==0) return false;
             this.dataMap.put(key, value);
+            c.signalAll(); // Notify all waiting threads
             return true;
         } finally {
             l_manager.unlock();
@@ -44,6 +46,7 @@ public class DataManager {
             for (Map.Entry<String, byte[]> e : mapValues.entrySet()) {
                 this.dataMap.put(e.getKey(), e.getValue());
             }
+            c.signalAll(); // Notify all waiting threads
         } finally {
             l_manager.unlock();
         }
@@ -73,11 +76,11 @@ public class DataManager {
             byte[] v = this.dataMap.get(keyCond);
 
             // Check if value of the keycond is equal to the given value
-            while (v != valueCond) {
+            while (v == null || !Arrays.equals(v, valueCond)) {
                 c.await();
                 v = this.dataMap.get(keyCond);
             }
-            
+
             return this.dataMap.getOrDefault(key, null);            
         } finally {
             l_manager.unlock();

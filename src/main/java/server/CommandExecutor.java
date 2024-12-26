@@ -51,6 +51,8 @@ public class CommandExecutor implements Runnable {
                 this.handleMultiGet(this.tag, this.commandArguments);
             } else if (this.command.equals("multiput")) {
                 this.handleMultiPut(this.tag, this.commandArguments);
+            } else if (this.command.equals("getwhen")) {
+                this.handleGetWhen(this.tag, this.commandArguments);
             } else {
                 this.conn.send(tag, ("Unsupported command: " + this.command).getBytes());
             }
@@ -159,4 +161,36 @@ public class CommandExecutor implements Runnable {
         this.data.multiPut(mapValues);
         this.conn.send(tag, "All keys updated successfully.".getBytes());
     }
+
+    private void handleGetWhen(int tag, String[] commandTokens) {
+        try {
+            if (commandTokens.length != 3) {
+                this.conn.send(tag, "Invalid number of arguments for 'getWhen'. Requires key keyCond valueCond.".getBytes());
+                return;
+            }
+
+            String key = commandTokens[0];
+            String keyCond = commandTokens[1];
+            String valueCond = commandTokens[2];
+
+            // Use getWhen to wait for the condition to be met
+            byte[] value = this.data.getWhen(key, keyCond, valueCond.getBytes());
+
+            if (value != null) {
+                this.conn.send(tag, value);
+            } else {
+                this.conn.send(tag, "".getBytes());
+            }
+        } catch (Exception e) {
+            // Catch-all for unexpected exceptions
+            System.err.println("Unexpected error while handling 'getWhen' for client: " + this.client_username + " - " + e.getMessage());
+            e.printStackTrace(); // Log the full stack trace for debugging
+            try {
+                this.conn.send(tag, "Unexpected error occurred while processing 'getWhen'.".getBytes());
+            } catch (IOException ex) {
+                System.err.println("Failed to notify client of unexpected error: " + ex.getMessage());
+            }
+        }
+    }
+
 }
