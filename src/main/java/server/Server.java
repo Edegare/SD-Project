@@ -22,7 +22,7 @@ public class Server {
             users = new UserManager(MAX_CLIENTS);
             data = new DataManager();
             serverSocket = new ServerSocket(PORT);
-            threadPool = Executors.newFixedThreadPool(MAX_CLIENTS); // Thread pool with MAX_CLIENTS number of threads
+            threadPool = Executors.newFixedThreadPool(MAX_CLIENTS * 2); // Thread pool with MAX_CLIENTS * 2 number of threads
             System.out.println("Server waiting for clients on port " + PORT + "...");
         } catch (IOException e) {
             System.err.println("Error: " + e.getMessage());
