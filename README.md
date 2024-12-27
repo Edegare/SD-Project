@@ -6,26 +6,31 @@
 
 ## Usage
 Inside your repository:
-1. Clean and Compile:
+- Clean and Compile:
 ```bash
 mvn clean compile
 ```
-2. Start server:
+- Start server:
 ```bash
 mvn exec:java -Pserver
 ```
-3. Start client:
+- Start client:
 ```bash
 mvn exec:java -Pclient
 ```
 
-0. Just clean:
+- Just clean:
 ```bash
 mvn clean
 ```
-0. Just compile:
+- Just compile:
 ```bash
 mvn compile
+```
+
+- Tests:
+```bash
+mvn test
 ```
 
 ## Installation
