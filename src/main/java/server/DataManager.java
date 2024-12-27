@@ -9,9 +9,9 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class DataManager {
-    private Map<String, byte[]> dataMap = new HashMap<>();
+    private Map<String, byte[]> dataMap = new HashMap<>(); // Map <keyname,data>
     private Lock l_manager = new ReentrantLock();
-    private Condition c = l_manager.newCondition();
+    private Map<String,Condition> condMap = new HashMap<>(); // Map of conditions to each key
 
     // Single Write 
     public boolean put(String key, byte[] value) {
@@ -19,7 +19,17 @@ public class DataManager {
         try {
             if (value.length==0) return false;
             this.dataMap.put(key, value);
-            c.signalAll(); // Notify all waiting threads
+            
+            if (this.condMap.containsKey(key)) {
+                Condition cond = this.condMap.get(key);
+                cond.signalAll(); // Notify all waiting threads of this key 
+            }
+            else {
+                // if doesn't exist create a new entry on map with a new condition
+                Condition cond = l_manager.newCondition();
+                this.condMap.put(key, cond);
+            }
+
             return true;
         } finally {
             l_manager.unlock();
@@ -42,9 +52,20 @@ public class DataManager {
         l_manager.lock();
         try {
             for (Map.Entry<String, byte[]> e : mapValues.entrySet()) {
-                this.dataMap.put(e.getKey(), e.getValue());
+                String key = e.getKey();
+                this.dataMap.put(key, e.getValue());
+
+                if (this.condMap.containsKey(key)) {
+                    Condition cond = this.condMap.get(key);
+                    cond.signalAll(); // Notify all waiting threads of this key 
+                }
+                else {
+                    // if doesn't exist creates a new entry on conditions map with a new condition
+                    Condition cond = l_manager.newCondition();
+                    this.condMap.put(key, cond);
+                }
             }
-            c.signalAll(); // Notify all waiting threads
+            
         } finally {
             l_manager.unlock();
         }
@@ -71,14 +92,16 @@ public class DataManager {
         l_manager.lock();
 
         try {
-            byte[] v = this.dataMap.get(keyCond);
 
-            // Check if value of the keycond is equal to the given value
-            while (v == null || !Arrays.equals(v, valueCond)) {
-                c.await();
-                v = this.dataMap.get(keyCond);
+            // Create or retrieve the condition associated with `keyCond`
+            Condition cond = condMap.computeIfAbsent(keyCond, k -> l_manager.newCondition());
+
+            // Check the condition of `keyCond` (value on map equals to 'valueCond') and wait if necessary
+            while (!Arrays.equals(dataMap.get(keyCond), valueCond)) {
+                cond.await(); // Wait until the condition is satisfied
             }
 
+            // Return value of 'key'
             return this.dataMap.getOrDefault(key, null);            
         } finally {
             l_manager.unlock();
