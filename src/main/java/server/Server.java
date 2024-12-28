@@ -73,8 +73,8 @@ public class Server {
     
     
             clientThreadPool = new ThreadPoolExecutor(
-                    maxClients + 5,
-                    (int) (maxClients + (maxClients * 0.5) + 5), // + 5 just to test await in authentication
+                    maxClients*2,
+                    (int) (maxClients*2),
                     5L, TimeUnit.SECONDS,
                     new LinkedBlockingQueue<>(),
                     Executors.defaultThreadFactory(),
