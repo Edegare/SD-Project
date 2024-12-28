@@ -29,26 +29,14 @@ public class Server {
                     MAX_CLIENTS,                                // Core pool size (reusable threads)
                     (int) (MAX_CLIENTS+(MAX_CLIENTS*0.5)),      // Maximum pool size (core size + extra)
                     5L, TimeUnit.SECONDS,         // Keep-alive time for idle threads
-                    new SynchronousQueue<>(),               // basically a queue with capacity 0, direct to rejetction
+                    new LinkedBlockingQueue<>(),                // Unbounded task queue
                     Executors.defaultThreadFactory(),           // Default thread factory
-                    new RejectedExecutionHandler() {             // Custom rejection policy
+                    new ThreadPoolExecutor.AbortPolicy() {      // Custom rejection policy
                         @Override
                         public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
-                            try {
-                                // Wait for 100 milliseconds
-                                Thread.sleep(100);
-                                // Attempt to resubmit the task to the executor
-                                executor.submit(r);
-                            } catch (InterruptedException e) {
-                                // If the thread is interrupted during sleep, restore the interrupt status
-                                Thread.currentThread().interrupt();
-                            } catch (RejectedExecutionException e) {
-                                // If resubmitting still fails, start a new thread
-                                new Thread(r).start();
-                            }
+                            new Thread(r).start();
                         }
                     }
-
             );
 
             // Thread pool for CommandExecutors
@@ -56,23 +44,12 @@ public class Server {
                     MAX_CLIENTS * 2,                          // Core pool size
                     MAX_CLIENTS * 4,                          // Maximum pool size
                     5L, TimeUnit.SECONDS,       // Keep-alive time for extra threads
-                    new SynchronousQueue<>(),            // basically a queue with capacity 0, direct to rejetction
+                    new LinkedBlockingQueue<>(),              // Bounded queue for commands
                     Executors.defaultThreadFactory(),         // Default thread factory
-                    new RejectedExecutionHandler() {             // Custom rejection policy
+                    new ThreadPoolExecutor.AbortPolicy() {    // Custom rejection policy for commands
                         @Override
                         public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
-                            try {
-                                // Wait for 100 milliseconds
-                                Thread.sleep(100);
-                                // Attempt to resubmit the task to the executor
-                                executor.submit(r);
-                            } catch (InterruptedException e) {
-                                // If the thread is interrupted during sleep, restore the interrupt status
-                                Thread.currentThread().interrupt();
-                            } catch (RejectedExecutionException e) {
-                                // If resubmitting still fails, start a new thread
-                                new Thread(r).start();
-                            }
+                            new Thread(r).start();
                         }
                     }
             );
@@ -93,59 +70,36 @@ public class Server {
             users = new UserManager(maxClients);
             data = new DataManager();
             serverSocket = new ServerSocket(PORT);
-
-
+    
+    
             clientThreadPool = new ThreadPoolExecutor(
-                    maxClients * 2,
-                    maxClients * 2,
+                    maxClients*2,
+                    (int) (maxClients*2),
                     5L, TimeUnit.SECONDS,
-                    new SynchronousQueue<>(),
+                    new LinkedBlockingQueue<>(),
                     Executors.defaultThreadFactory(),
-                    new RejectedExecutionHandler() {             // Custom rejection policy
+                    new ThreadPoolExecutor.AbortPolicy() {
                         @Override
                         public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
-                            try {
-                                // Wait for 100 milliseconds
-                                Thread.sleep(100);
-                                // Attempt to resubmit the task to the executor
-                                executor.submit(r);
-                            } catch (InterruptedException e) {
-                                // If the thread is interrupted during sleep, restore the interrupt status
-                                Thread.currentThread().interrupt();
-                            } catch (RejectedExecutionException e) {
-                                // If resubmitting still fails, start a new thread
-                                new Thread(r).start();
-                            }
+                            new Thread(r).start();
                         }
                     }
             );
-
+    
             commandThreadPool = new ThreadPoolExecutor(
                     maxClients * 2,
                     maxClients * 4,
                     5L, TimeUnit.SECONDS,
-                    new SynchronousQueue<>(),
+                    new LinkedBlockingQueue<>(),
                     Executors.defaultThreadFactory(),
-                    new RejectedExecutionHandler() {             // Custom rejection policy
+                    new ThreadPoolExecutor.AbortPolicy() {
                         @Override
                         public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
-                            try {
-                                // Wait for 100 milliseconds
-                                Thread.sleep(100);
-                                // Attempt to resubmit the task to the executor
-                                executor.submit(r);
-                            } catch (InterruptedException e) {
-                                // If the thread is interrupted during sleep, restore the interrupt status
-                                Thread.currentThread().interrupt();
-                            } catch (RejectedExecutionException e) {
-                                // If resubmitting still fails, start a new thread
-                                new Thread(r).start();
-                            }
+                            new Thread(r).start();
                         }
                     }
             );
-
-
+    
             clientThreadPool.prestartAllCoreThreads();
             commandThreadPool.prestartAllCoreThreads();
             System.out.println("Server waiting for clients on port " + PORT + "...");
