@@ -29,11 +29,12 @@ public class Server {
                     MAX_CLIENTS,                                // Core pool size (reusable threads)
                     (int) (MAX_CLIENTS+(MAX_CLIENTS*0.5)),      // Maximum pool size (core size + extra)
                     5L, TimeUnit.SECONDS,         // Keep-alive time for idle threads
-                    new LinkedBlockingQueue<>(),                // Unbounded task queue
+                    new SynchronousQueue<>(),               // basically a queue with capacity 0, direct to rejetction
                     Executors.defaultThreadFactory(),           // Default thread factory
-                    new ThreadPoolExecutor.AbortPolicy() {      // Custom rejection policy
+                    new RejectedExecutionHandler() {             // Custom rejection policy
                         @Override
                         public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+                            // Handle the rejected task
                             new Thread(r).start();
                         }
                     }
@@ -44,11 +45,12 @@ public class Server {
                     MAX_CLIENTS * 2,                          // Core pool size
                     MAX_CLIENTS * 4,                          // Maximum pool size
                     5L, TimeUnit.SECONDS,       // Keep-alive time for extra threads
-                    new LinkedBlockingQueue<>(),              // Bounded queue for commands
+                    new SynchronousQueue<>(),            // basically a queue with capacity 0, direct to rejetction
                     Executors.defaultThreadFactory(),         // Default thread factory
-                    new ThreadPoolExecutor.AbortPolicy() {    // Custom rejection policy for commands
+                    new RejectedExecutionHandler() {
                         @Override
                         public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+                            // Handle the rejected task
                             new Thread(r).start();
                         }
                     }
@@ -70,36 +72,39 @@ public class Server {
             users = new UserManager(maxClients);
             data = new DataManager();
             serverSocket = new ServerSocket(PORT);
-    
-    
+
+
             clientThreadPool = new ThreadPoolExecutor(
-                    maxClients*2,
-                    (int) (maxClients*2),
+                    maxClients * 2,
+                    maxClients * 2,
                     5L, TimeUnit.SECONDS,
-                    new LinkedBlockingQueue<>(),
+                    new SynchronousQueue<>(),
                     Executors.defaultThreadFactory(),
-                    new ThreadPoolExecutor.AbortPolicy() {
+                    new RejectedExecutionHandler() {
                         @Override
                         public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+                            // Handle the rejected task
                             new Thread(r).start();
                         }
                     }
             );
-    
+
             commandThreadPool = new ThreadPoolExecutor(
                     maxClients * 2,
                     maxClients * 4,
                     5L, TimeUnit.SECONDS,
-                    new LinkedBlockingQueue<>(),
+                    new SynchronousQueue<>(),
                     Executors.defaultThreadFactory(),
-                    new ThreadPoolExecutor.AbortPolicy() {
+                    new RejectedExecutionHandler() {
                         @Override
                         public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+                            // Handle the rejected task
                             new Thread(r).start();
                         }
                     }
             );
-    
+
+
             clientThreadPool.prestartAllCoreThreads();
             commandThreadPool.prestartAllCoreThreads();
             System.out.println("Server waiting for clients on port " + PORT + "...");
