@@ -93,6 +93,8 @@ public class Client {
                 // Send option and credentials as a single frame
                 conn.send(option, (username + ":" + password).getBytes());
 
+                if (option==2) System.out.println("Waiting for server to authenticate user...");
+
                 Frame regLogFrame = conn.receive(); // Receive server response
                 
                 // ------------ Create new account ----------------
@@ -104,8 +106,7 @@ public class Client {
 
                 // ------------- Log in --------------
                 if (option == 2) {
-                    System.out.println("Waiting for server to authenticate user...");
-
+                    
                     if (regLogFrame.data.length > 0 && regLogFrame.data[0] == 1) { // If authenticated start data management
 
                         // Start demultiplexer to send commands
