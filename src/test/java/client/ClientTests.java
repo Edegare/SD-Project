@@ -13,7 +13,18 @@ import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartUtils;
+import org.jfree.chart.JFreeChart;
+import org.jfree.data.category.DefaultCategoryDataset;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
 
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -47,6 +58,27 @@ class ClientTests {
     static void stopServer() {
         if (serverThread != null && serverThread.isAlive()) {
             serverThread.interrupt(); // Interrompe a thread do servidor
+        }
+    }
+
+    private void generateLineChart(String title, String xLabel, String yLabel, List<Integer> xValues, List<Double> yValues, String outputPath) {
+        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+        for (int i = 0; i < xValues.size(); i++) {
+            dataset.addValue(yValues.get(i), "Métricas", xValues.get(i).toString());
+        }
+    
+        JFreeChart lineChart = ChartFactory.createLineChart(
+                title,
+                xLabel,
+                yLabel,
+                dataset
+        );
+    
+        try {
+            ChartUtils.saveChartAsPNG(new File(outputPath), lineChart, 800, 600);
+            System.out.println("Gráfico salvo em: " + outputPath);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -307,91 +339,20 @@ class ClientTests {
 
     @Test
     void testWorkload() {
-        String workloadType = "PUT-Heavy"; // Pode ser alterado para GET-Heavy ou Mixed
-        int numClients = 50;
-        int operationsPerClient = 100;
-
-        ExecutorService executor = Executors.newFixedThreadPool(numClients);
-        long startTime = System.nanoTime();
-
-        for (int i = 0; i < numClients; i++) {
-            int clientId = i;
-            executor.submit(() -> {
-                Socket socket = null;
-                TaggedConnection conn = null;
-
-                try {
-                    socket = new Socket("127.0.0.1", 12345);
-                    conn = new TaggedConnection(socket);
-
-                    // Registo e Login
-                    conn.send(new Frame(1, ("userWorkload" + clientId + ":pass" + clientId).getBytes()));
-                    conn.receive(); // Aguarda resposta do registro
-                    conn.send(new Frame(2, ("userWorkload" + clientId + ":pass" + clientId).getBytes()));
-                    conn.receive(); // Aguarda resposta do login
-
-                    for (int j = 0; j < operationsPerClient; j++) {
-                        if (workloadType.equals("PUT-Heavy") && j % 5 != 0) {
-                            // Operação PUT
-                            conn.send(new Frame(3, ("put key" + clientId + " value" + clientId).getBytes()));
-                            conn.receive(); // Espera pela resposta do servidor
-                        } else if (workloadType.equals("GET-Heavy") && j % 5 == 0) {
-                            // Operação GET
-                            conn.send(new Frame(4, ("get key" + clientId).getBytes()));
-                            conn.receive(); // Espera pela resposta do servidor
-                        } else {
-                            // Operação mista PUT e GET
-                            conn.send(new Frame(3, ("put key" + clientId + " value" + clientId).getBytes()));
-                            conn.receive(); // Espera pela resposta do PUT
-                            conn.send(new Frame(4, ("get key" + clientId).getBytes()));
-                            conn.receive(); // Espera pela resposta do GET
-                        }
-                    }
-                } catch (IOException e) {
-                    System.err.printf("Erro no cliente %d: %s%n", clientId, e.getMessage());
-                } finally {
-                    try {
-                        if (conn != null) {
-                            conn.send(new Frame(0, "end".getBytes())); // Notificar o servidor
-                            Thread.sleep(50); // Pequeno atraso para garantir o processamento
-                            conn.close();
-                        }
-                        if (socket != null && !socket.isClosed()) socket.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-            });
-        }
-
-        executor.shutdown();
-        try {
-            executor.awaitTermination(2, TimeUnit.MINUTES);
-        } catch (InterruptedException e) {
-            throw new AssertionError("Execução interrompida: " + e.getMessage());
-        }
-
-        long endTime = System.nanoTime();
-        double totalTimeMs = (endTime - startTime) / 1e6;
-
-        System.out.printf("Workload %s: Número de clientes: %d, Tempo total: %.2f ms%n",
-                workloadType, numClients, totalTimeMs);
-    }
-
-    @Test
-    void testScalability() {
-        int[] clientCounts = {10, 50, 100}; // Diferentes números de clientes para escalar
+        int[] clientCounts = {10, 50, 100, 500, 1000}; // Diferentes números de clientes
+        List<Integer> clients = new ArrayList<>();
+        List<Double> totalTimes = new ArrayList<>();
+        List<Double> averageResponseTimes = new ArrayList<>();
 
         for (int numClients : clientCounts) {
-            ExecutorService executor = Executors.newFixedThreadPool(numClients);
-            long startTime = System.nanoTime(); // Tempo total de execução
-            long[] responseTimes = new long[numClients]; // Tempo de resposta por cliente
+            ExecutorService executor = Executors.newFixedThreadPool(250);
+            List<Double> clientTimes = Collections.synchronizedList(new ArrayList<>());
+            long startTime = System.nanoTime();
 
             for (int i = 0; i < numClients; i++) {
                 int clientId = i;
                 executor.submit(() -> {
+                    long clientStartTime = System.nanoTime();
                     Socket socket = null;
                     TaggedConnection conn = null;
 
@@ -399,7 +360,89 @@ class ClientTests {
                         socket = new Socket("127.0.0.1", 12345);
                         conn = new TaggedConnection(socket);
 
-                        long opStartTime = System.nanoTime();
+                        // Registo e Login
+                        conn.send(new Frame(1, ("userWorkload" + clientId + ":pass" + clientId).getBytes()));
+                        conn.receive();
+                        conn.send(new Frame(2, ("userWorkload" + clientId + ":pass" + clientId).getBytes()));
+                        conn.receive();
+
+                        for (int j = 0; j < 100; j++) { // Operações MIXED
+                            conn.send(new Frame(3, ("put key" + clientId + " value" + clientId).getBytes()));
+                            conn.receive();
+                            conn.send(new Frame(4, ("get key" + clientId).getBytes()));
+                            conn.receive();
+                        }
+                    } catch (IOException e) {
+                        System.err.printf("Erro no cliente %d: %s%n", clientId, e.getMessage());
+                    } finally {
+                        long clientEndTime = System.nanoTime();
+                        synchronized (clientTimes) {
+                            clientTimes.add((clientEndTime - clientStartTime) / 1e6); // Tempo em ms
+                        }
+                        try {
+                            if (conn != null) {
+                                conn.send(new Frame(0, "end".getBytes())); // Notificar o servidor
+                                Thread.sleep(50); // Pequeno atraso para garantir o processamento
+                                conn.close();
+                            }
+                            if (socket != null && !socket.isClosed()) socket.close();
+                        } catch (IOException | InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+            }
+
+            executor.shutdown();
+            try {
+                executor.awaitTermination(2, TimeUnit.MINUTES);
+            } catch (InterruptedException e) {
+                throw new AssertionError("Execução interrompida: " + e.getMessage());
+            }
+
+            long endTime = System.nanoTime();
+            double totalTime = (endTime - startTime) / 1e6;
+            double avgResponseTime = clientTimes.stream().mapToDouble(Double::doubleValue).average().orElse(0);
+
+            clients.add(numClients);
+            totalTimes.add(totalTime);
+            averageResponseTimes.add(avgResponseTime);
+
+            System.out.printf("Número de clientes: %d, Tempo total: %.2f ms, Tempo médio: %.2f ms%n",
+                    numClients, totalTime, avgResponseTime);
+        }
+
+        // Gerar gráficos
+        generateLineChart("Workload - Tempo Total", "Número de Clientes", "Tempo Total (ms)",
+                clients, totalTimes, "workload_total_time.png");
+        generateLineChart("Workload - Tempo Médio", "Número de Clientes", "Tempo Médio de Resposta (ms)",
+                clients, averageResponseTimes, "workload_avg_response_time.png");
+    }
+
+
+
+    @Test
+    void testScalability() {
+        int[] clientCounts = {10, 50, 100, 500, 1000, 10000};
+        List<Integer> clients = new ArrayList<>();
+        List<Double> totalTimes = new ArrayList<>();
+        List<Double> averageResponseTimes = new ArrayList<>();
+
+        for (int numClients : clientCounts) {
+            ExecutorService executor = Executors.newFixedThreadPool(250);
+            long[] responseTimes = new long[numClients];
+            long startTime = System.nanoTime();
+
+            for (int i = 0; i < numClients; i++) {
+                int clientId = i;
+                executor.submit(() -> {
+                    long opStartTime = System.nanoTime();
+                    Socket socket = null;
+                    TaggedConnection conn = null;
+
+                    try {
+                        socket = new Socket("127.0.0.1", 12345);
+                        conn = new TaggedConnection(socket);
 
                         // Registo e Login
                         conn.send(new Frame(1, ("userScalability" + clientId + ":pass" + clientId).getBytes()));
@@ -413,14 +456,13 @@ class ClientTests {
                         conn.send(new Frame(4, ("get key" + clientId).getBytes()));
                         conn.receive();
 
-                        long opEndTime = System.nanoTime();
-                        responseTimes[clientId] = opEndTime - opStartTime; // Tempo da operação
-
                     } catch (IOException e) {
-                        throw new AssertionError("Erro no cliente " + clientId + ": " + e.getMessage());
+                        System.err.printf("Erro no cliente %d: %s%n", clientId, e.getMessage());
                     } finally {
+                        long opEndTime = System.nanoTime();
+                        responseTimes[clientId] = opEndTime - opStartTime;
                         try {
-                            if (conn != null) {
+                            if (conn != null){
                                 conn.send(new Frame(0, "end".getBytes())); // Notificar o servidor
                                 Thread.sleep(50); // Pequeno atraso para garantir o processamento
                                 conn.close();
@@ -443,12 +485,24 @@ class ClientTests {
             }
 
             long endTime = System.nanoTime();
-            double averageResponseTime = Arrays.stream(responseTimes).average().orElse(0) / 1e6; // Média em ms
+            double totalTime = (endTime - startTime) / 1e6;
+            double avgResponseTime = Arrays.stream(responseTimes).average().orElse(0) / 1e6;
+
+            clients.add(numClients);
+            totalTimes.add(totalTime);
+            averageResponseTimes.add(avgResponseTime);
 
             System.out.printf("Número de clientes: %d, Tempo total: %.2f ms, Tempo de resposta médio: %.2f ms%n",
-                    numClients, (endTime - startTime) / 1e6, averageResponseTime);
+                    numClients, totalTime, avgResponseTime);
         }
+
+        // Gerar gráficos
+        generateLineChart("Escalabilidade - Tempo Total", "Número de Clientes", "Tempo Total (ms)",
+                clients, totalTimes, "scalability_total_time.png");
+        generateLineChart("Escalabilidade - Tempo Médio", "Número de Clientes", "Tempo Médio de Resposta (ms)",
+                clients, averageResponseTimes, "scalability_avg_response_time.png");
     }
+
 
 
 

@@ -26,7 +26,12 @@ public class UserManager {
 
     // Get number of users logged in
     public int getActiveSessions() {
-        return this.activeSessions;
+        lock.lock();
+        try {
+            return this.activeSessions;
+        } finally {
+            lock.unlock();
+        }
     }
 
     // Registers a new user

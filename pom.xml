@@ -27,6 +27,12 @@
             <version>5.10.0</version>
             <scope>test</scope>
         </dependency>
+        <!-- Dependência do JFreeChart para executar os graficos -->
+        <dependency>
+            <groupId>org.jfree</groupId>
+            <artifactId>jfreechart</artifactId>
+            <version>1.5.3</version>
+        </dependency>
     </dependencies>
 
     <build>
