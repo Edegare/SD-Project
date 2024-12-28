@@ -128,14 +128,13 @@ public class Client {
                             
 
                             if (userInput.equals("help")) { // Help commands - list all commands
-                                String helpMessage = "List of commands:\n" +
-                                                    "help - List all commands.\n" +
-                                                    "put key value - Adds or updates a single key-value pair in the server.\n" +
-                                                    "get key - Retrieves the value associated with the given key, or returns null if the key does not exist.\n" +
-                                                    "multiPut n key value key value key value... - Adds or updates n key-value pairs in the server.\n" +
-                                                    "multiGet n key key key... - Retrieves n values for the specified keys and returns them as a map.\n" +
-                                                    "getWhen key keyCond valueCond - Blocks until the value of keyCond matches valueCond, then retrieves the value of key.\n" +
-                                                    "end - End program\n";
+                                String helpMessage = "[INFO] List of commands:\n" +
+                                                    "[INFO] - help: List all commands.\n" +
+                                                    "[INFO] - put <key> <value>: Adds or updates a single key-value pair in the server.\n" +
+                                                    "[INFO] - get <key>: Retrieves the value associated with the given key, or returns null if the key does not exist.\n" +
+                                                    "[INFO] - multiput <n> <key> <value>...: Adds or updates n key-value pairs in the server.\n" +
+                                                    "[INFO] - multiget <n> <key>...: Retrieves n values for the specified keys and returns them as a map.\n" +
+                                                    "[INFO] - end: End program\n";
 
                                 System.out.println(helpMessage);
                                 continue;
