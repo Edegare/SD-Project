@@ -34,10 +34,21 @@ public class Server {
                     new RejectedExecutionHandler() {             // Custom rejection policy
                         @Override
                         public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
-                            // Handle the rejected task
-                            new Thread(r).start();
+                            try {
+                                // Wait for 100 milliseconds
+                                Thread.sleep(100);
+                                // Attempt to resubmit the task to the executor
+                                executor.submit(r);
+                            } catch (InterruptedException e) {
+                                // If the thread is interrupted during sleep, restore the interrupt status
+                                Thread.currentThread().interrupt();
+                            } catch (RejectedExecutionException e) {
+                                // If resubmitting still fails, start a new thread
+                                new Thread(r).start();
+                            }
                         }
                     }
+
             );
 
             // Thread pool for CommandExecutors
@@ -47,11 +58,21 @@ public class Server {
                     5L, TimeUnit.SECONDS,       // Keep-alive time for extra threads
                     new SynchronousQueue<>(),            // basically a queue with capacity 0, direct to rejetction
                     Executors.defaultThreadFactory(),         // Default thread factory
-                    new RejectedExecutionHandler() {
+                    new RejectedExecutionHandler() {             // Custom rejection policy
                         @Override
                         public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
-                            // Handle the rejected task
-                            new Thread(r).start();
+                            try {
+                                // Wait for 100 milliseconds
+                                Thread.sleep(100);
+                                // Attempt to resubmit the task to the executor
+                                executor.submit(r);
+                            } catch (InterruptedException e) {
+                                // If the thread is interrupted during sleep, restore the interrupt status
+                                Thread.currentThread().interrupt();
+                            } catch (RejectedExecutionException e) {
+                                // If resubmitting still fails, start a new thread
+                                new Thread(r).start();
+                            }
                         }
                     }
             );
@@ -80,11 +101,21 @@ public class Server {
                     5L, TimeUnit.SECONDS,
                     new SynchronousQueue<>(),
                     Executors.defaultThreadFactory(),
-                    new RejectedExecutionHandler() {
+                    new RejectedExecutionHandler() {             // Custom rejection policy
                         @Override
                         public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
-                            // Handle the rejected task
-                            new Thread(r).start();
+                            try {
+                                // Wait for 100 milliseconds
+                                Thread.sleep(100);
+                                // Attempt to resubmit the task to the executor
+                                executor.submit(r);
+                            } catch (InterruptedException e) {
+                                // If the thread is interrupted during sleep, restore the interrupt status
+                                Thread.currentThread().interrupt();
+                            } catch (RejectedExecutionException e) {
+                                // If resubmitting still fails, start a new thread
+                                new Thread(r).start();
+                            }
                         }
                     }
             );
@@ -95,11 +126,21 @@ public class Server {
                     5L, TimeUnit.SECONDS,
                     new SynchronousQueue<>(),
                     Executors.defaultThreadFactory(),
-                    new RejectedExecutionHandler() {
+                    new RejectedExecutionHandler() {             // Custom rejection policy
                         @Override
                         public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
-                            // Handle the rejected task
-                            new Thread(r).start();
+                            try {
+                                // Wait for 100 milliseconds
+                                Thread.sleep(100);
+                                // Attempt to resubmit the task to the executor
+                                executor.submit(r);
+                            } catch (InterruptedException e) {
+                                // If the thread is interrupted during sleep, restore the interrupt status
+                                Thread.currentThread().interrupt();
+                            } catch (RejectedExecutionException e) {
+                                // If resubmitting still fails, start a new thread
+                                new Thread(r).start();
+                            }
                         }
                     }
             );
